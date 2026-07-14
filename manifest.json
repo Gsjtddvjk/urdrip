@@ -1,0 +1,17 @@
+{
+  "name": "URDRIP DZ",
+  "short_name": "URDRIP",
+  "description": "Premium Streetwear — Algeria",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050510",
+  "theme_color": "#050510",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#070707">
+<title>URDRIP — لوحة التحكم</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<!-- PASSWORD LOCK SCREEN -->
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-box">
+    <img src="logo.svg" alt="URDRIP" width="80" height="80" style="border-radius:16px;margin-bottom:20px">
+    <h2 style="margin-bottom:8px;font-family:'Space Grotesk',sans-serif">URDRIP DZ</h2>
+    <p style="color:#9090b0;margin-bottom:28px;font-size:15px">أدخل كلمة المرور للدخول</p>
+    <input type="password" id="lockPass" placeholder="كلمة المرور" autocomplete="off" style="width:100%;padding:16px 18px;border-radius:14px;background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.1);color:#f0f0f5;font-size:16px;margin-bottom:14px;outline:none;text-align:center;min-height:56px;font-family:inherit;transition:border-color .3s" inputmode="text">
+    <p id="lockErr" style="color:#ff2d2d;font-size:14px;display:none;margin-bottom:14px">كلمة المرور خاطئة</p>
+    <button onclick="checkPass()" style="width:100%;padding:16px;border-radius:14px;background:linear-gradient(135deg,#ff2d2d,#ff4500);color:#fff;font-size:17px;font-weight:700;border:none;cursor:pointer;min-height:56px;font-family:inherit;box-shadow:0 6px 24px rgba(255,45,45,.3);transition:all .25s">دخول</button>
+  </div>
+</div>
+
+<!-- ADMIN CONTENT (Hidden by default) -->
+<div class="admin-layout" id="adminContent" style="display:none">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar glass" id="sidebar">
+    <div class="sidebar-header">
+      <img src="logo.svg" alt="URDRIP" class="sidebar-logo">
+      <span class="sidebar-title">لوحة التحكم</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="sidebar-link active" href="#" data-section="dashboard">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        الرئيسية
+      </a>
+      <a class="sidebar-link" href="#" data-section="products">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+        المنتجات
+      </a>
+      <a class="sidebar-link" href="#" data-section="add-product">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        إضافة منتج
+      </a>
+      <a class="sidebar-link" href="#" data-section="categories">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        التصنيفات
+      </a>
+      <a class="sidebar-link" href="#" data-section="orders">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+        الطلبات
+      </a>
+      <a class="sidebar-link" href="#" data-section="settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        الإعدادات
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="index.html" target="_blank" class="sidebar-link">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        عرض الموقع
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <header class="admin-header glass">
+      <button class="sidebar-toggle" id="sidebarToggle">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <h1 id="pageTitle">لوحة التحكم</h1>
+      <div class="header-actions"><span class="admin-badge">ADMIN</span></div>
+    </header>
+
+    <!-- DASHBOARD -->
+    <section class="admin-section active" id="dashboard">
+      <div class="stats-grid">
+        <div class="stat-card glass">
+          <div class="stat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div>
+          <div class="stat-info"><h3 id="statProducts">0</h3><p>المنتجات</p></div>
+        </div>
+        <div class="stat-card glass">
+          <div class="stat-icon orders"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg></div>
+          <div class="stat-info"><h3 id="statOrders">0</h3><p>الطلبات</p></div>
+        </div>
+        <div class="stat-card glass">
+          <div class="stat-icon revenue"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+          <div class="stat-info"><h3 id="statRevenue">0 دج</h3><p>الإيرادات</p></div>
+        </div>
+      </div>
+      <div class="recent-section">
+        <h2>أحدث المنتجات</h2>
+        <div class="recent-products" id="recentProducts"></div>
+      </div>
+    </section>
+
+    <!-- PRODUCTS -->
+    <section class="admin-section" id="products">
+      <div class="section-header">
+        <h2>إدارة المنتجات</h2>
+        <button class="btn-add" id="addProductBtn">+ إضافة منتج</button>
+      </div>
+      <div class="products-search">
+        <input type="text" id="searchProducts" placeholder="بحث عن منتج...">
+      </div>
+      <div class="products-table-wrapper">
+        <table class="products-table">
+          <thead><tr><th>الصورة</th><th>الاسم</th><th>القسم</th><th>السعر</th><th>الحالة</th><th>إجراءات</th></tr></thead>
+          <tbody id="productsTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ADD PRODUCT -->
+    <section class="admin-section" id="add-product">
+      <div class="section-header"><h2>إضافة منتج جديد</h2></div>
+      <form class="product-form glass" id="productForm">
+        <div class="form-grid">
+          <div class="form-group"><label>اسم المنتج *</label><input type="text" id="pName" required></div>
+          <div class="form-group"><label>القسم *</label><select id="pCategory" required><option value="">اختر القسم</option><option value="clothes">ستريت وير</option><option value="accessories">إكسسوارات</option><option value="gang">سنيكرز</option></select></div>
+          <div class="form-group"><label>النوع الفرعي</label><select id="pSubcategory"><option value="">اختر النوع</option><option value="tshirts">تيشيرتات</option><option value="hoodies">هودي</option><option value="pants">بناطيل</option><option value="jackets">جاكيتات</option><option value="watches">ساعات</option><option value="sunglasses">نظارات</option><option value="chains">سلاسل</option><option value="hats">قبعات</option><option value="sneakers">سنيكرز</option></select></div>
+          <div class="form-group"><label>السعر (دج) *</label><input type="number" id="pPrice" required></div>
+          <div class="form-group"><label>السعر القديم (دج)</label><input type="number" id="pOldPrice"></div>
+          <div class="form-group"><label>اللون</label><input type="text" id="pColor"></div>
+          <div class="form-group"><label>المقاسات</label><input type="text" id="pSizes" placeholder="S, M, L, XL"></div>
+          <div class="form-group"><label>البادج</label><select id="pBadge"><option value="">بدون بادج</option><option value="new">جديد</option><option value="hot">رائج</option><option value="sale">عرض</option><option value="best">الأكثر مبيعاً</option></select></div>
+          <div class="form-group"><label>المخزون</label><input type="number" id="pStock" value="5" min="0"></div>
+        </div>
+        <div class="form-group full-width"><label>وصف المنتج *</label><textarea id="pDescription" required></textarea></div>
+
+        <!-- 3 IMAGES -->
+        <div class="form-group full-width">
+          <label>صور المنتج (3 صور كحد أقصى)</label>
+          <div class="images-grid">
+            <div class="image-upload" id="imageUpload1">
+              <input type="file" id="pImage1" accept="image/*" hidden>
+              <div class="upload-placeholder" id="uploadPlaceholder1">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <p>الصورة الرئيسية</p>
+              </div>
+              <div class="upload-preview" id="uploadPreview1" style="display:none">
+                <img id="previewImg1" src="" alt="">
+                <button type="button" class="remove-img" data-input="pImage1" data-preview="uploadPreview1" data-placeholder="uploadPlaceholder1">&times;</button>
+              </div>
+            </div>
+            <div class="image-upload" id="imageUpload2">
+              <input type="file" id="pImage2" accept="image/*" hidden>
+              <div class="upload-placeholder" id="uploadPlaceholder2">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <p>صورة ثانية</p>
+              </div>
+              <div class="upload-preview" id="uploadPreview2" style="display:none">
+                <img id="previewImg2" src="" alt="">
+                <button type="button" class="remove-img" data-input="pImage2" data-preview="uploadPreview2" data-placeholder="uploadPlaceholder2">&times;</button>
+              </div>
+            </div>
+            <div class="image-upload" id="imageUpload3">
+              <input type="file" id="pImage3" accept="image/*" hidden>
+              <div class="upload-placeholder" id="uploadPlaceholder3">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <p>صورة ثالثة</p>
+              </div>
+              <div class="upload-preview" id="uploadPreview3" style="display:none">
+                <img id="previewImg3" src="" alt="">
+                <button type="button" class="remove-img" data-input="pImage3" data-preview="uploadPreview3" data-placeholder="uploadPlaceholder3">&times;</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADVANCED INFO -->
+        <div class="form-grid">
+          <div class="form-group"><label>المادة / الخامة</label><input type="text" id="pMaterial" placeholder="مثال: قطن 100%"></div>
+          <div class="form-group"><label>تعليمات العناية</label><input type="text" id="pCare" placeholder="مثال: غسل يدوي"></div>
+          <div class="form-group"><label>المنشأ</label><input type="text" id="pOrigin" placeholder="مثال: صنع في الجزائر"></div>
+          <div class="form-group"><label>كود الصنف</label><input type="text" id="pStyleCode" placeholder="مثال: UR-001"></div>
+        </div>
+
+        <div class="form-group full-width"><label class="checkbox-label"><input type="checkbox" id="pActive" checked><span>منتج نشط</span></label></div>
+        <div class="form-actions">
+          <button type="submit" class="btn-save">حفظ المنتج</button>
+          <button type="button" class="btn-cancel" id="cancelProduct">إلغاء</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- EDIT PRODUCT -->
+    <section class="admin-section" id="edit-product">
+      <div class="section-header"><h2>تعديل المنتج</h2></div>
+      <form class="product-form glass" id="editProductForm">
+        <input type="hidden" id="editProductId">
+        <div class="form-grid">
+          <div class="form-group"><label>اسم المنتج *</label><input type="text" id="editName" required></div>
+          <div class="form-group"><label>القسم *</label><select id="editCategory" required><option value="clothes">ستريت وير</option><option value="accessories">إكسسوارات</option><option value="gang">سنيكرز</option></select></div>
+          <div class="form-group"><label>النوع الفرعي</label><select id="editSubcategory"><option value="">اختر النوع</option><option value="tshirts">تيشيرتات</option><option value="hoodies">هودي</option><option value="pants">بناطيل</option><option value="jackets">جاكيتات</option><option value="watches">ساعات</option><option value="sunglasses">نظارات</option><option value="chains">سلاسل</option><option value="hats">قبعات</option><option value="sneakers">سنيكرز</option></select></div>
+          <div class="form-group"><label>السعر (دج) *</label><input type="number" id="editPrice" required></div>
+          <div class="form-group"><label>السعر القديم (دج)</label><input type="number" id="editOldPrice"></div>
+          <div class="form-group"><label>اللون</label><input type="text" id="editColor"></div>
+          <div class="form-group"><label>المقاسات</label><input type="text" id="editSizes"></div>
+          <div class="form-group"><label>البادج</label><select id="editBadge"><option value="">بدون بادج</option><option value="new">جديد</option><option value="hot">رائج</option><option value="sale">عرض</option><option value="best">الأكثر مبيعاً</option></select></div>
+          <div class="form-group"><label>المخزون</label><input type="number" id="editStock" value="0" min="0"></div>
+        </div>
+        <div class="form-group full-width"><label>وصف المنتج *</label><textarea id="editDescription" required></textarea></div>
+
+        <!-- 3 IMAGES EDIT -->
+        <div class="form-group full-width">
+          <label>صور المنتج</label>
+          <div class="edit-images-current" id="editImagesCurrent"></div>
+          <div class="images-grid">
+            <div class="image-upload" id="editImageUpload1">
+              <input type="file" id="editImage1" accept="image/*" hidden>
+              <div class="upload-placeholder" id="editPlaceholder1"><p>تغيير الصورة 1</p></div>
+              <div class="upload-preview" id="editPreview1" style="display:none"><img id="editPreviewImg1" src="" alt=""><button type="button" class="remove-img" data-input="editImage1" data-preview="editPreview1" data-placeholder="editPlaceholder1">&times;</button></div>
+            </div>
+            <div class="image-upload" id="editImageUpload2">
+              <input type="file" id="editImage2" accept="image/*" hidden>
+              <div class="upload-placeholder" id="editPlaceholder2"><p>تغيير الصورة 2</p></div>
+              <div class="upload-preview" id="editPreview2" style="display:none"><img id="editPreviewImg2" src="" alt=""><button type="button" class="remove-img" data-input="editImage2" data-preview="editPreview2" data-placeholder="editPlaceholder2">&times;</button></div>
+            </div>
+            <div class="image-upload" id="editImageUpload3">
+              <input type="file" id="editImage3" accept="image/*" hidden>
+              <div class="upload-placeholder" id="editPlaceholder3"><p>تغيير الصورة 3</p></div>
+              <div class="upload-preview" id="editPreview3" style="display:none"><img id="editPreviewImg3" src="" alt=""><button type="button" class="remove-img" data-input="editImage3" data-preview="editPreview3" data-placeholder="editPlaceholder3">&times;</button></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADVANCED INFO EDIT -->
+        <div class="form-grid">
+          <div class="form-group"><label>المادة / الخامة</label><input type="text" id="editMaterial"></div>
+          <div class="form-group"><label>تعليمات العناية</label><input type="text" id="editCare"></div>
+          <div class="form-group"><label>المنشأ</label><input type="text" id="editOrigin"></div>
+          <div class="form-group"><label>كود الصنف</label><input type="text" id="editStyleCode"></div>
+        </div>
+
+        <div class="form-group full-width"><label class="checkbox-label"><input type="checkbox" id="editActive" checked><span>منتج نشط</span></label></div>
+        <div class="form-actions">
+          <button type="submit" class="btn-save">حفظ التعديلات</button>
+          <button type="button" class="btn-cancel" id="cancelEdit">إلغاء</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- CATEGORIES -->
+    <section class="admin-section" id="categories">
+      <div class="section-header">
+        <h2>إدارة التصنيفات</h2>
+        <button class="btn-add" id="addCategoryBtn">+ إضافة تصنيف</button>
+      </div>
+      <div class="categories-grid" id="categoriesGrid"></div>
+      <!-- ADD CATEGORY FORM -->
+      <div class="category-form-wrapper" id="categoryFormWrapper" style="display:none">
+        <form class="product-form glass" id="categoryForm">
+          <input type="hidden" id="catEditId">
+          <div class="form-grid">
+            <div class="form-group"><label>اسم التصنيف (عربي) *</label><input type="text" id="catName" required></div>
+            <div class="form-group"><label>اسم التصنيف (إنجليزي) *</label><input type="text" id="catNameEn" required></div>
+            <div class="form-group full-width"><label>الوصف</label><input type="text" id="catDescription"></div>
+            <div class="form-group full-width">
+              <label>صورة التصنيف</label>
+              <div class="image-upload" id="catImageUpload">
+                <input type="file" id="catImage" accept="image/*" hidden>
+                <div class="upload-placeholder" id="catPlaceholder"><p>اضغط لاختيار صورة</p></div>
+                <div class="upload-preview" id="catPreview" style="display:none"><img id="catPreviewImg" src="" alt=""><button type="button" class="remove-img" data-input="catImage" data-preview="catPreview" data-placeholder="catPlaceholder">&times;</button></div>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-save">حفظ</button>
+            <button type="button" class="btn-cancel" id="cancelCategory">إلغاء</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ORDERS -->
+    <section class="admin-section" id="orders">
+      <div class="section-header"><h2>الطلبات</h2></div>
+      <div class="orders-list" id="ordersList">
+        <div class="empty-state"><p>لا توجد طلبات بعد</p></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="admin-section" id="settings">
+      <div class="section-header"><h2>الإعدادات</h2></div>
+      <div class="settings-form glass">
+        <div class="form-group"><label>اسم المتجر</label><input type="text" id="shopName" value="URDRIP DZ"></div>
+        <div class="form-group"><label>حساب الانستغرام</label><input type="text" id="instagramAccount" value="urdrip_dz"></div>
+        <div class="form-actions">
+          <button type="button" class="btn-save" id="saveSettings">حفظ الإعدادات</button>
+        </div>
+      </div>
+      <div class="settings-form glass" style="margin-top:24px">
+        <h3 style="margin-bottom:16px;font-size:16px;font-weight:700">تغيير كلمة المرور</h3>
+        <div class="form-group"><label>كلمة المرور الحالية</label><input type="password" id="currentPass" placeholder="أدخل كلمة المرور الحالية"></div>
+        <div class="form-group"><label>كلمة المرور الجديدة</label><input type="password" id="newPass" placeholder="أدخل كلمة المرور الجديدة"></div>
+        <div class="form-group"><label>تأكيد كلمة المرور</label><input type="password" id="confirmPass" placeholder="أعد إدخال كلمة المرور الجديدة"></div>
+        <div class="form-actions">
+          <button type="button" class="btn-save" id="changePassBtn">تغيير كلمة المرور</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><span id="toastMessage">تم بنجاح</span></div>
+
+<!-- DELETE MODAL -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal glass">
+    <h3>حذف المنتج</h3>
+    <p>هل أنت متأكد؟</p>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="cancelDelete">إلغاء</button>
+      <button class="btn-delete" id="confirmDelete">حذف</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUPABASE CONFIG — hardcoded in admin.js -->
+
+<script>
+var _adminPass = 'urdrip2026';
+fetch('https://vmsrldkihpxkfbgvswnf.supabase.co/rest/v1/settings?key=eq.admin_pass&select=value', {
+  headers: { apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtc3JsZGtpaHB4a2ZiZ3Zzd25mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1MjM5MDIsImV4cCI6MjA5OTA5OTkwMn0.byh2My9XzGjLJjfEZw-EyGqPeCDefYPgTgsQavC9ALE', Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtc3JsZGtpaHB4a2ZiZ3Zzd25mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1MjM5MDIsImV4cCI6MjA5OTA5OTkwMn0.byh2My9XzGjLJjfEZw-EyGqPeCDefYPgTgsQavC9ALE' }
+}).then(function(r){return r.json()}).then(function(d){if(d&&d[0]&&d[0].value)_adminPass=d[0].value}).catch(function(){});
+
+function checkPass() {
+  var pass = document.getElementById('lockPass').value;
+  if (pass === _adminPass) {
+    document.getElementById('lockScreen').style.display = 'none';
+    document.getElementById('adminContent').style.display = '';
+  } else {
+    document.getElementById('lockErr').style.display = 'block';
+    document.getElementById('lockPass').value = '';
+    document.getElementById('lockPass').focus();
+  }
+}
+document.getElementById('lockPass').addEventListener('keydown', function(e) { if (e.key === 'Enter') checkPass(); });
+</script>
+<script src="admin.js"></script>
+</body>
+</html>

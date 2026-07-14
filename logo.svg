@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 70" fill="none">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@800;900&amp;display=swap');
+  </style>
+  <text x="8" y="50" font-family="'Inter','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="52" fill="white" letter-spacing="-2">urdrip</text>
+  <g transform="translate(186,14)">
+    <path d="M14 0 C14 0 22 10 22 18 C22 22.4 18.4 26 14 26 C9.6 26 6 22.4 6 18 C6 10 14 0 14 0Z" fill="white"/>
+    <path d="M14 6 C14 6 18 12 18 16 C18 18.2 16.2 20 14 20 C11.8 20 10 18.2 10 16 C10 12 14 6 14 6Z" fill="#0a0a18"/>
+    <ellipse cx="12" cy="14" rx="1.5" ry="2" fill="white" opacity="0.6"/>
+  </g>
+  <text x="188" y="52" font-family="'Inter','Helvetica Neue',Arial,sans-serif" font-weight="800" font-size="18" fill="white" letter-spacing="0">dz</text>
+</svg>
