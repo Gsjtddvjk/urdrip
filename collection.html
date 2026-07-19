@@ -96,7 +96,11 @@ img{max-width:100%;display:block;image-rendering:-webkit-optimize-contrast;image
 .product-price .old{font-size:14px;color:rgba(255,255,255,.35);text-decoration:line-through}
 .product-stock{font-size:11px;font-weight:600;margin-top:8px;display:inline-block;padding:3px 10px;border-radius:999px}
 .product-stock.in{background:rgba(40,200,80,.15);color:#28c850;border:1px solid rgba(40,200,80,.2)}
-.product-stock.out{background:rgba(255,59,59,.15);color:#ff3b3b;border:1px solid rgba(255,59,59,.2)}
+.product-stock.out{background:rgba(255,59,59,.15);color:#ff3b3b;border:1px solid rgba(255,59,59,.2);animation:pulse-red 2s infinite}
+.product-card.out-of-stock{opacity:.7}
+.product-card.out-of-stock .product-img::after{content:'OUT OF STOCK';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-15deg);background:rgba(255,59,59,.9);color:#fff;padding:6px 16px;border-radius:6px;font-size:12px;font-weight:700;letter-spacing:1px;white-space:nowrap;box-shadow:0 4px 20px rgba(255,59,59,.5)}
+.product-img{position:relative}
+@keyframes pulse-red{0%,100%{opacity:1}50%{opacity:.6}}
 .product-card{opacity:0;transform:translateY(30px);animation:cardReveal .6s ease forwards}
 .product-card:nth-child(1){animation-delay:.05s}
 .product-card:nth-child(2){animation-delay:.1s}
@@ -141,6 +145,7 @@ img{max-width:100%;display:block;image-rendering:-webkit-optimize-contrast;image
 .modal-stock.in{color:#28c850}
 .modal-stock.out .dot{background:#ff3b3b}
 .modal-stock.out{color:#ff3b3b}
+.modal-add:disabled,.buy-now-btn:disabled{opacity:.5!important;cursor:not-allowed!important;pointer-events:none}
 .modal-sizes-label{font-size:13px;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:10px;letter-spacing:.06em}
 .modal-sizes{display:flex;gap:10px;margin-bottom:28px;flex-wrap:wrap}
 .size-btn{min-width:52px;height:48px;border-radius:14px;font-size:14px;font-weight:700;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);color:rgba(255,255,255,.7);cursor:pointer;transition:all .25s;display:grid;place-items:center;font-family:'Gilroy',sans-serif;padding:0 14px}
@@ -360,7 +365,8 @@ function renderProducts(){
       var badge=p.badge==='new'?'<span class="product-badge new">NEW</span>':p.badge==='sale'?'<span class="product-badge sale">SALE</span>':p.badge==='best'?'<span class="product-badge new">HOT</span>':'';
       var old=p.old_price&&p.old_price>p.price?'<span class="old">'+price(p.old_price)+' دج</span>':'';
       var stock=p.stock!==undefined?(p.stock>0?'<span class="product-stock in">IN STOCK</span>':'<span class="product-stock out">OUT OF STOCK</span>'):'';
-      return '<div class="product-card" data-idx="'+i+'" data-cat="'+p.category+'" onclick="openModal('+i+')"><div class="product-img">'+(thumb?'<img src="'+esc(thumb)+'" alt="'+esc(p.name)+'" loading="lazy">':'')+badge+'</div><div class="product-body"><div class="product-cat">'+esc(catL[p.category]||p.category)+'</div><div class="product-name">'+esc(p.name)+'</div><div class="product-price"><span class="current">'+price(p.price)+' دج</span>'+old+'</div>'+stock+'</div></div>'
+      var outOfStock=p.stock===0?' out-of-stock':'';
+      return '<div class="product-card'+outOfStock+'" data-idx="'+i+'" data-cat="'+p.category+'" onclick="openModal('+i+')"><div class="product-img">'+(thumb?'<img src="'+esc(thumb)+'" alt="'+esc(p.name)+'" loading="lazy">':'')+badge+'</div><div class="product-body"><div class="product-cat">'+esc(catL[p.category]||p.category)+'</div><div class="product-name">'+esc(p.name)+'</div><div class="product-price"><span class="current">'+price(p.price)+' دج</span>'+old+'</div>'+stock+'</div></div>'
     }).join('');
   }
   var cards=grid.querySelectorAll('.product-card');
@@ -388,6 +394,10 @@ function openModal(i){
   var sk=document.getElementById('modalStock');
   sk.className=p.stock>0?'modal-stock in':'modal-stock out';
   sk.innerHTML='<span class="dot"></span>'+(p.stock>0?'IN STOCK':'OUT OF STOCK');
+  var addBtn=document.getElementById('modalAdd');
+  var buyBtn=document.getElementById('modalBuy');
+  if(p.stock<=0){addBtn.disabled=true;addBtn.textContent='OUT OF STOCK';addBtn.style.opacity='.5';addBtn.style.cursor='not-allowed';buyBtn.disabled=true;buyBtn.style.opacity='.5';buyBtn.style.cursor='not-allowed'}
+  else{addBtn.disabled=false;addBtn.textContent='Add to Cart';addBtn.style.opacity='';addBtn.style.cursor='';buyBtn.disabled=false;buyBtn.textContent='Buy Now';buyBtn.style.opacity='';buyBtn.style.cursor=''}
   var sizes=p.sizes||(p.size?[p.size]:['S','M','L','XL','XXL']);
   if(typeof sizes==='string')sizes=sizes.split(',').map(function(s){return s.trim()}).filter(Boolean);
   selectedSize=sizes[0]||null;

@@ -205,6 +205,7 @@ button,a,[role="button"]{-webkit-tap-highlight-color:transparent}
 .modal-stock .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
 .modal-stock.in .dot{background:#28c850}.modal-stock.in{color:#28c850}
 .modal-stock.out .dot{background:#ff3b3b}.modal-stock.out{color:#ff3b3b}
+.modal-add:disabled,.buy-now-btn:disabled{opacity:.5!important;cursor:not-allowed!important;pointer-events:none}
 .modal-sizes-label{font-size:13px;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:10px;letter-spacing:.06em}
 .modal-sizes{display:flex;gap:10px;margin-bottom:28px;flex-wrap:wrap}
 .size-btn{min-width:52px;height:48px;border-radius:14px;font-size:14px;font-weight:700;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);color:rgba(255,255,255,.7);cursor:pointer;transition:all .25s;display:grid;place-items:center;font-family:'Gilroy',sans-serif;padding:0 14px}
@@ -546,6 +547,10 @@ function openModal(i){
   var sk=document.getElementById('modalStock');
   sk.className=p.stock>0?'modal-stock in':'modal-stock out';
   sk.innerHTML='<span class="dot"></span>'+(p.stock>0?'IN STOCK':'OUT OF STOCK');
+  var addBtn=document.getElementById('modalAdd');
+  var buyBtn=document.getElementById('modalBuy');
+  if(p.stock<=0){addBtn.disabled=true;addBtn.textContent='OUT OF STOCK';addBtn.style.opacity='.5';addBtn.style.cursor='not-allowed';buyBtn.disabled=true;buyBtn.style.opacity='.5';buyBtn.style.cursor='not-allowed'}
+  else{addBtn.disabled=false;addBtn.textContent='Add to Cart';addBtn.style.opacity='';addBtn.style.cursor='';buyBtn.disabled=false;buyBtn.textContent='Buy Now';buyBtn.style.opacity='';buyBtn.style.cursor=''}
   var sizes=p.sizes||(p.size?[p.size]:['S','M','L','XL','XXL']);
   if(typeof sizes==='string')sizes=sizes.split(',').map(function(s){return s.trim()}).filter(Boolean);
   selectedSize=sizes[0]||null;
