@@ -1,4 +1,4 @@
-/* URDRIP DZ — Admin JS v5 — Cloudinary + Supabase */
+/* URDRIP DZ — Admin JS v6 — Cloudinary + Supabase + Cache */
 'use strict';
 
 var CLOUDINARY_CLOUD = 'tqpt3tzb';
@@ -17,6 +17,15 @@ async function uploadToCloudinary(file) {
     console.error('Cloudinary error:', d);
     return null;
   } catch (e) { console.error('Cloudinary failed:', e); return null; }
+}
+
+/* ===== MEMORY CACHE — 60s TTL ===== */
+var _cache = {};
+function cachedFetch(key, fn, ttl) {
+  ttl = ttl || 60000;
+  var now = Date.now();
+  if (_cache[key] && (now - _cache[key].ts) < ttl) return Promise.resolve(_cache[key].data);
+  return fn().then(function(data) { _cache[key] = { data: data, ts: now }; return data; });
 }
 
 var products = JSON.parse(localStorage.getItem('urdrip_products') || '[]');
@@ -39,6 +48,12 @@ function getSvcKey() {
 }
 
 /* ---- SUPABASE CRUD ---- */
+function clearCache(table) {
+  if (table === 'products') delete _cache['admin_products'];
+  if (table === 'categories') delete _cache['admin_categories'];
+  if (table === 'orders') delete _cache['admin_orders'];
+}
+
 async function sbFetch(table, query) {
   var sb = getSupabase();
   if (!sb) return null;
@@ -125,9 +140,15 @@ function stripImages(items) {
 }
 async function fetchAllFromSupabase() {
   var results = await Promise.all([
-    sbFetch('products', '?select=id,name,category,price,old_price,color,sizes,image,badge,description,stock,active,created_at&order=created_at.desc'),
-    sbFetch('categories', '?select=id,name,description,sort_order,active&order=sort_order.asc'),
-    sbFetch('orders', '?select=id,customer,phone,wilaya,commune,delivery,note,items,total,status,created_at&order=created_at.desc')
+    cachedFetch('admin_products', function() {
+      return sbFetch('products', '?select=id,name,category,price,old_price,color,sizes,image,badge,description,stock,active,created_at&order=created_at.desc');
+    }, 60000),
+    cachedFetch('admin_categories', function() {
+      return sbFetch('categories', '?select=id,name,description,sort_order,active&order=sort_order.asc');
+    }, 60000),
+    cachedFetch('admin_orders', function() {
+      return sbFetch('orders', '?select=id,customer,phone,wilaya,commune,delivery,note,items,total,status,created_at&order=created_at.desc');
+    }, 60000)
   ]);
   var prods = results[0];
   var cats = results[1];
@@ -563,6 +584,7 @@ function loadSettings() {
 }
 
 function save() {
+  clearCache('products'); clearCache('categories'); clearCache('orders');
   try { localStorage.setItem('urdrip_products', JSON.stringify(stripImages(products))); } catch(e) {}
   try { localStorage.setItem('urdrip_categories', JSON.stringify(categories)); } catch(e) {}
   try { localStorage.setItem('urdrip_orders', JSON.stringify(orders)); } catch(e) {}

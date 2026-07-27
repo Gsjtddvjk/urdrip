@@ -524,6 +524,16 @@ footer li:hover{color:#fff}
 <script>
 var SB='https://vmsrldkihpxkfbgvswnf.supabase.co';
 var SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtc3JsZGtpaHB4a2ZiZ3Zzd25mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1MjM5MDIsImV4cCI6MjA5OTA5OTkwMn0.byh2My9XzGjLJjfEZw-EyGqPeCDefYPgTgsQavC9ALE';
+
+/* ===== MEMORY CACHE — 60s TTL ===== */
+var _cache={};
+function cachedFetch(key,fn,ttl){
+  ttl=ttl||60000;
+  var now=Date.now();
+  if(_cache[key]&&(now-_cache[key].ts)<ttl)return Promise.resolve(_cache[key].data);
+  return fn().then(function(data){_cache[key]={data:data,ts:now};return data});
+}
+
 var products=[],selectedSize=null,currentModalProduct=null;
 
 function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''}
@@ -600,15 +610,16 @@ function hideLoader(){var l=document.getElementById('pageLoader');if(l){l.classL
 async function initStore(){
   setDB('loading');
   try{
-    var c=new AbortController(),timer=setTimeout(function(){c.abort()},3000);
-    var r=await fetch(SB+'/rest/v1/products?select=id,name,price,category,badge,stock,image,sizes,color,old_price,description,created_at&active=eq.true&order=created_at.desc',{headers:{apikey:SK,Authorization:'Bearer '+SK},signal:c.signal});
-    clearTimeout(timer);if(!r.ok)throw new Error('fetch failed');
-    var data=await r.json();products=Array.isArray(data)?data:[];
+    var cached=await cachedFetch('products_all',function(){
+      var c=new AbortController(),timer=setTimeout(function(){c.abort()},8000);
+      return fetch(SB+'/rest/v1/products?select=id,name,price,category,badge,stock,image,sizes,color,old_price,description,created_at&active=eq.true&order=created_at.desc',{headers:{apikey:SK,Authorization:'Bearer '+SK},signal:c.signal}).then(function(r){clearTimeout(timer);if(!r.ok)throw new Error('fetch failed');return r.json()}).then(function(d){return Array.isArray(d)?d:[]});
+    },60000);
+    products=cached;
     try{localStorage.setItem('urdrip_products_cache',JSON.stringify(products))}catch(e){}
     setDB('connected');renderProducts();hideLoader();
   }catch(e){
     setDB('disconnected');
-    try{var cached=JSON.parse(localStorage.getItem('urdrip_products_cache'));if(cached&&cached.length){products=cached;renderProducts()}}catch(ex){}
+    try{var local=JSON.parse(localStorage.getItem('urdrip_products_cache'));if(local&&local.length){products=local;renderProducts()}}catch(ex){}
     hideLoader();
   }
 }
