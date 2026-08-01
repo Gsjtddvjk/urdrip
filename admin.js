@@ -1,9 +1,9 @@
 /* URDRIP DZ — Admin JS v6 — Cloudinary + Supabase + Cache */
 'use strict';
 
-var CLOUDINARY_CLOUD = 'tqpt3tzb';
+var CLOUDINARY_CLOUD = 'tkqa2zxz';
 var CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/image/upload';
-var CLOUDINARY_PRESET = 'urdrip';
+var CLOUDINARY_PRESET = 'urdrip1';
 
 async function uploadToCloudinary(file) {
   var fd = new FormData();
@@ -266,7 +266,7 @@ function initImageUpload(areaId, fileId, previewId, placeholderId) {
       if (imgEl) imgEl.src = url;
       placeholder.style.display = 'none'; preview.style.display = 'block';
     } else {
-      alert('فشل رفع الصورة. تأكد من إنشاء Upload Preset باسم "urdrip" في Cloudinary.');
+      alert('فشل رفع الصورة. تأكد من إنشاء Upload Preset باسم "urdrip1" في Cloudinary.');
     }
   }
 }
