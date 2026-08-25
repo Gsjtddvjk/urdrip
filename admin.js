@@ -1,15 +1,18 @@
 /* URDRIP DZ — Admin JS v6 — Cloudinary + Supabase + Cache */
 'use strict';
 
-var CLOUDINARY_CLOUD = 'tkqa2zxz';
+var CLOUDINARY_CLOUD = 'qqftt7fm';
 var CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/image/upload';
-var CLOUDINARY_PRESET = 'urdrip1';
+var CLOUDINARY_PRESET = 'gg-urdrip';
 
 async function uploadToCloudinary(file) {
+  var prepared = await resizeImageForUpload(file, 1800, 0.82);
   var fd = new FormData();
-  fd.append('file', file);
+  fd.append('file', prepared);
   fd.append('upload_preset', CLOUDINARY_PRESET);
   fd.append('folder', 'urdrip');
+  fd.append('quality', 'auto');
+  fd.append('fetch_format', 'auto');
   try {
     var r = await fetch(CLOUDINARY_URL, { method: 'POST', body: fd });
     var d = await r.json();
@@ -26,6 +29,61 @@ function cachedFetch(key, fn, ttl) {
   var now = Date.now();
   if (_cache[key] && (now - _cache[key].ts) < ttl) return Promise.resolve(_cache[key].data);
   return fn().then(function(data) { _cache[key] = { data: data, ts: now }; return data; });
+}
+
+function readLocalCache(key, ttl) {
+  try {
+    var raw = localStorage.getItem(key);
+    if (!raw) return null;
+    var item = JSON.parse(raw);
+    if (!item || !item.expires) return item;
+    if (Date.now() < item.expires) return item.value;
+    localStorage.removeItem(key);
+  } catch (e) {}
+  return null;
+}
+
+function writeLocalCache(key, value, ttl) {
+  try {
+    localStorage.setItem(key, JSON.stringify({ value: value, expires: Date.now() + (ttl || 300000) }));
+  } catch (e) {}
+}
+
+function optimizeImageUrl(url, width) {
+  if (!url) return '';
+  var safeUrl = String(url);
+  if (safeUrl.indexOf('cloudinary.com') !== -1 && safeUrl.indexOf('q_auto') === -1) {
+    return safeUrl.replace('/image/upload/', '/image/upload/q_auto,f_auto,w_' + (width || 900) + ',c_fill,dpr_auto/');
+  }
+  return safeUrl;
+}
+
+function resizeImageForUpload(file, maxWidth, quality) {
+  return new Promise(function(resolve) {
+    if (!file || !file.type || file.type.indexOf('image/') !== 0) return resolve(file);
+    if (file.size <= 800 * 1024) return resolve(file);
+    var reader = new FileReader();
+    reader.onload = function(evt) {
+      var img = new Image();
+      img.onload = function() {
+        var canvas = document.createElement('canvas');
+        var scale = Math.min(1, maxWidth / Math.max(img.width, img.height));
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(function(blob) {
+          if (!blob) return resolve(file);
+          var name = (file.name || 'upload').replace(/\.[^/.]+$/, '');
+          resolve(new File([blob], name + '.jpg', { type: 'image/jpeg', lastModified: Date.now() }));
+        }, 'image/jpeg', quality || 0.8);
+      };
+      img.onerror = function() { resolve(file); };
+      img.src = evt.target.result;
+    };
+    reader.onerror = function() { resolve(file); };
+    reader.readAsDataURL(file);
+  });
 }
 
 var products = JSON.parse(localStorage.getItem('urdrip_products') || '[]');
@@ -57,6 +115,9 @@ function clearCache(table) {
 async function sbFetch(table, query) {
   var sb = getSupabase();
   if (!sb) return null;
+  var cacheKey = 'sb_' + table + '_' + (query || '');
+  var cached = readLocalCache(cacheKey, 300000);
+  if (cached) return cached;
   try {
     var ctrl = new AbortController();
     var timer = setTimeout(function() { ctrl.abort(); }, 8000);
@@ -65,7 +126,11 @@ async function sbFetch(table, query) {
       signal: ctrl.signal
     });
     clearTimeout(timer);
-    if (r.ok) return await r.json();
+    if (r.ok) {
+      var data = await r.json();
+      writeLocalCache(cacheKey, data, 300000);
+      return data;
+    }
     console.error('sbFetch error:', r.status, await r.text().catch(function(){}));
     return null;
   } catch (e) { console.error('sbFetch failed:', e); return null; }
@@ -266,7 +331,7 @@ function initImageUpload(areaId, fileId, previewId, placeholderId) {
       if (imgEl) imgEl.src = url;
       placeholder.style.display = 'none'; preview.style.display = 'block';
     } else {
-      alert('فشل رفع الصورة. تأكد من إنشاء Upload Preset باسم "urdrip1" في Cloudinary.');
+      alert('فشل رفع الصورة. تأكد من إنشاء Upload Preset باسم "gg-urdrip" في Cloudinary.');
     }
   }
 }

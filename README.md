@@ -14,9 +14,9 @@
 - **Service Role Key:** `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtc3JsZGtpaHB4a2ZiZ3Zzd25mIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MzUyMzkwMiwiZXhwIjoyMDk5MDk5OTAyfQ.gqfcrzQ5H2m14CoiaNG2Gfmd6ZB6yzlS4X1oiFJFy_o`
 
 ### Cloudinary (رفع الصور)
-- **Cloud Name:** `tkqa2zxz`
-- **Upload Preset:** `urdrip1` (unsigned)
-- **URL:** `https://api.cloudinary.com/v1_1/tkqa2zxz/image/upload`
+- **Cloud Name:** `qqftt7fm`
+- **Upload Preset:** `gg-urdrip` (unsigned)
+- **URL:** `https://api.cloudinary.com/v1_1/qqftt7fm/image/upload`
 - مجاني 25GB + CDN سريع + تحويل تلقائي إلى WebP
 
 ### Supabase Schema (v8)

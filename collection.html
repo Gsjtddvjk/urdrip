@@ -354,6 +354,28 @@ var products=[],currentFilter='all',selectedSize=null;
 var params=new URLSearchParams(window.location.search),catParam=params.get('cat');
 if(catParam)currentFilter=catParam;
 
+function readLocalCache(key, ttl) {
+  try {
+    var raw = localStorage.getItem(key);
+    if (!raw) return null;
+    var item = JSON.parse(raw);
+    if (!item || !item.expires) return item;
+    if (Date.now() < item.expires) return item.value;
+    localStorage.removeItem(key);
+  } catch (e) {}
+  return null;
+}
+function writeLocalCache(key, value, ttl) {
+  try { localStorage.setItem(key, JSON.stringify({ value: value, expires: Date.now() + (ttl || 300000) })); } catch (e) {}
+}
+function optimizeImageUrl(url, width) {
+  if (!url) return '';
+  var s = String(url);
+  if (s.indexOf('cloudinary.com') !== -1 && s.indexOf('q_auto') === -1) {
+    return s.replace('/image/upload/', '/image/upload/q_auto,f_auto,w_' + (width || 900) + ',c_fill,dpr_auto/');
+  }
+  return s;
+}
 function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''}
 function price(n){return(parseInt(n)||0).toLocaleString()}
 function getImgs(p){if(p.images&&Array.isArray(p.images)&&p.images.length)return p.images.filter(Boolean);if(p.image)return[p.image];return[]}
@@ -372,11 +394,12 @@ function renderProducts(){
     var catL={clothes:'ستريت وير',accessories:'إكسسوارات',gang:'سنيكرز'};
     grid.innerHTML=f.map(function(p,i){
       var imgs=getImgs(p),thumb=imgs[0]||'';
+      var optimizedThumb = optimizeImageUrl(thumb, 500);
       var badge=p.badge==='new'?'<span class="product-badge new">NEW</span>':p.badge==='sale'?'<span class="product-badge sale">SALE</span>':p.badge==='best'?'<span class="product-badge new">HOT</span>':'';
       var old=p.old_price&&p.old_price>p.price?'<span class="old">'+price(p.old_price)+' دج</span>':'';
       var stock=p.stock!==undefined?(p.stock>0?'<span class="product-stock in">IN STOCK</span>':'<span class="product-stock out">OUT OF STOCK</span>'):'';
       var outOfStock=p.stock===0?' out-of-stock':'';
-      return '<div class="product-card'+outOfStock+'" data-idx="'+i+'" data-cat="'+p.category+'" onclick="openModal('+i+')"><div class="product-img">'+(thumb?'<img src="'+esc(thumb)+'" alt="'+esc(p.name)+'" loading="lazy">':'')+badge+'</div><div class="product-body"><div class="product-cat">'+esc(catL[p.category]||p.category)+'</div><div class="product-name">'+esc(p.name)+'</div><div class="product-price"><span class="current">'+price(p.price)+' دج</span>'+old+'</div>'+stock+'</div></div>'
+      return '<div class="product-card'+outOfStock+'" data-idx="'+i+'" data-cat="'+p.category+'" onclick="openModal('+i+')"><div class="product-img">'+(thumb?'<img src="'+esc(optimizedThumb)+'" alt="'+esc(p.name)+'" loading="lazy" decoding="async" fetchpriority="low">':'')+badge+'</div><div class="product-body"><div class="product-cat">'+esc(catL[p.category]||p.category)+'</div><div class="product-name">'+esc(p.name)+'</div><div class="product-price"><span class="current">'+price(p.price)+' دج</span>'+old+'</div>'+stock+'</div></div>'
     }).join('');
   }
   var cards=grid.querySelectorAll('.product-card');
@@ -416,19 +439,25 @@ function openModal(i){
   currentModalProduct=p;
   document.getElementById('modalOverlay').classList.add('open');
   document.body.style.overflow='hidden';
+  var imgs=getImgs(p);
+  if(imgs.length){
+    var mainImg=optimizeImageUrl(imgs[0],1200);
+    document.getElementById('modalMainImg').innerHTML='<img src="'+esc(mainImg)+'" alt="'+esc(p.name)+'" loading="eager" decoding="async">';
+    document.getElementById('modalThumbs').innerHTML=imgs.map(function(s,idx){var thumb=optimizeImageUrl(s,220);return '<div class="modal-thumb'+(idx===0?' active':'')+'" onclick="switchImg(this,\''+esc(thumb).replace(/'/g,"\\'")+ '\')"><img src="'+esc(thumb)+'" alt="thumb" loading="lazy" decoding="async"></div>'}).join('');
+    return;
+  }
   fetch(SB+'/rest/v1/products?select=image,images&id=eq.'+p.id,{headers:{apikey:SK,Authorization:'Bearer '+SK}}).then(function(r){return r.json()}).then(function(d){
     if(d&&d[0]){p.image=d[0].image;p.images=d[0].images}
-    var imgs=getImgs(p);
-    document.getElementById('modalMainImg').innerHTML=imgs[0]?'<img src="'+esc(imgs[0])+'" alt="'+esc(p.name)+'">':'';
-    document.getElementById('modalThumbs').innerHTML=imgs.map(function(s,idx){return '<div class="modal-thumb'+(idx===0?' active':'')+'" onclick="switchImg(this,\''+esc(s).replace(/'/g,"\\'")+'\')"><img src="'+esc(s)+'" alt="thumb"></div>'}).join('');
+    var imgs2=getImgs(p);
+    document.getElementById('modalMainImg').innerHTML=imgs2[0]?'<img src="'+esc(optimizeImageUrl(imgs2[0],1200))+'" alt="'+esc(p.name)+'" loading="eager" decoding="async">':'';
+    document.getElementById('modalThumbs').innerHTML=imgs2.map(function(s,idx){var thumb=optimizeImageUrl(s,220);return '<div class="modal-thumb'+(idx===0?' active':'')+'" onclick="switchImg(this,\''+esc(thumb).replace(/'/g,"\\'")+ '\')"><img src="'+esc(thumb)+'" alt="thumb" loading="lazy" decoding="async"></div>'}).join('');
   }).catch(function(){});
 }
 function closeModal(){document.getElementById('modalOverlay').classList.remove('open');document.body.style.overflow='';currentModalProduct=null}
-function switchImg(el,src){document.querySelector('.modal-main-img').innerHTML='<img src="'+src+'" alt="product">';document.querySelectorAll('.modal-thumb').forEach(function(t){t.classList.remove('active')});el.classList.add('active')}
+function switchImg(el,src){document.querySelector('.modal-main-img').innerHTML='<img src="'+src+'" alt="product" loading="eager" decoding="async">';document.querySelectorAll('.modal-thumb').forEach(function(t){t.classList.remove('active')});el.classList.add('active')}
 function pickSize(el,s){document.querySelectorAll('.size-btn').forEach(function(b){b.classList.remove('active')});el.classList.add('active');selectedSize=s}
 
 /* CART SYSTEM */
-var currentModalProduct=null;
 function getCart(){try{return JSON.parse(localStorage.getItem('urdrip_cart')||'[]')}catch(e){return[]}}
 function saveCart(c){localStorage.setItem('urdrip_cart',JSON.stringify(c));updateCartCount()}
 function updateCartCount(){var c=getCart(),n=document.getElementById('cartCount');if(n){var total=c.reduce(function(s,it){return s+(it.qty||1)},0);n.textContent=total;n.classList.toggle('show',total>0)}}
@@ -474,19 +503,25 @@ if(catParam){document.querySelectorAll('.filter-btn').forEach(function(b){b.clas
 /* === INIT: loading screen until DB responds === */
 async function initStore(){
   setDB('loading');
-  try{
-    var cached=await cachedFetch('products_all',function(){
-      var c=new AbortController(),timer=setTimeout(function(){c.abort()},8000);
-      return fetch(SB+'/rest/v1/products?select=id,name,price,category,badge,stock,image,sizes,color,old_price,description,created_at&active=eq.true&order=created_at.desc',{headers:{apikey:SK,Authorization:'Bearer '+SK},signal:c.signal}).then(function(r){clearTimeout(timer);if(!r.ok)throw new Error('fetch failed');return r.json()}).then(function(d){return Array.isArray(d)?d:[]});
-    },60000);
-    products=cached;
-    try{localStorage.setItem('urdrip_products_cache',JSON.stringify(products));}catch(e){}
+  try {
+    var localCached = readLocalCache('urdrip_products_cache', 300000);
+    if (localCached && localCached.length) {
+      products = localCached;
+      renderProducts();
+      setDB('connected');
+    }
+    var cached = await cachedFetch('products_all', function() {
+      var c = new AbortController(), timer = setTimeout(function() { c.abort(); }, 8000);
+      return fetch(SB + '/rest/v1/products?select=id,name,price,category,badge,stock,image,sizes,color,old_price,description,created_at&active=eq.true&order=created_at.desc', { headers: { apikey: SK, Authorization: 'Bearer ' + SK }, signal: c.signal}).then(function(r){ clearTimeout(timer); if (!r.ok) throw new Error('fetch failed'); return r.json(); }).then(function(d){ return Array.isArray(d) ? d : []; });
+    }, 60000);
+    products = cached;
+    writeLocalCache('urdrip_products_cache', products, 300000);
     setDB('connected');
     renderProducts();
     hideLoader();
-  }catch(e){
+  } catch (e) {
     setDB('disconnected');
-    try{var local=JSON.parse(localStorage.getItem('urdrip_products_cache'));if(local&&local.length){products=local;renderProducts();setDB('disconnected')}}catch(ex){}
+    try { var local = readLocalCache('urdrip_products_cache', 300000); if (local && local.length) { products = local; renderProducts(); setDB('disconnected'); } } catch(ex) {}
     hideLoader();
   }
 }

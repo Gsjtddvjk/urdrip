@@ -536,6 +536,28 @@ function cachedFetch(key,fn,ttl){
 
 var products=[],selectedSize=null,currentModalProduct=null;
 
+function readLocalCache(key, ttl) {
+  try {
+    var raw = localStorage.getItem(key);
+    if (!raw) return null;
+    var item = JSON.parse(raw);
+    if (!item || !item.expires) return item;
+    if (Date.now() < item.expires) return item.value;
+    localStorage.removeItem(key);
+  } catch (e) {}
+  return null;
+}
+function writeLocalCache(key, value, ttl) {
+  try { localStorage.setItem(key, JSON.stringify({ value: value, expires: Date.now() + (ttl || 300000) })); } catch (e) {}
+}
+function optimizeImageUrl(url, width) {
+  if (!url) return '';
+  var s = String(url);
+  if (s.indexOf('cloudinary.com') !== -1 && s.indexOf('q_auto') === -1) {
+    return s.replace('/image/upload/', '/image/upload/q_auto,f_auto,w_' + (width || 900) + ',c_fill,dpr_auto/');
+  }
+  return s;
+}
 function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''}
 function price(n){return(parseInt(n)||0).toLocaleString()}
 function getImgs(p){if(p.images&&Array.isArray(p.images)&&p.images.length)return p.images.filter(Boolean);if(p.image)return[p.image];return[]}
@@ -609,17 +631,23 @@ document.getElementById('modalBuy').addEventListener('click',function(){
 function hideLoader(){var l=document.getElementById('pageLoader');if(l){l.classList.add('hidden');setTimeout(function(){l.style.display='none'},500)}}
 async function initStore(){
   setDB('loading');
-  try{
+  try {
+    var localCached = readLocalCache('urdrip_products_cache', 300000);
+    if (localCached && localCached.length) {
+      products = localCached;
+      renderProducts();
+      setDB('connected');
+    }
     var cached=await cachedFetch('products_all',function(){
       var c=new AbortController(),timer=setTimeout(function(){c.abort()},8000);
       return fetch(SB+'/rest/v1/products?select=id,name,price,category,badge,stock,image,sizes,color,old_price,description,created_at&active=eq.true&order=created_at.desc',{headers:{apikey:SK,Authorization:'Bearer '+SK},signal:c.signal}).then(function(r){clearTimeout(timer);if(!r.ok)throw new Error('fetch failed');return r.json()}).then(function(d){return Array.isArray(d)?d:[]});
     },60000);
     products=cached;
-    try{localStorage.setItem('urdrip_products_cache',JSON.stringify(products))}catch(e){}
+    writeLocalCache('urdrip_products_cache', products, 300000);
     setDB('connected');renderProducts();hideLoader();
   }catch(e){
     setDB('disconnected');
-    try{var local=JSON.parse(localStorage.getItem('urdrip_products_cache'));if(local&&local.length){products=local;renderProducts()}}catch(ex){}
+    try{var local=readLocalCache('urdrip_products_cache',300000);if(local&&local.length){products=local;renderProducts()}}catch(ex){}
     hideLoader();
   }
 }
