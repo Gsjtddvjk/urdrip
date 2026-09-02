@@ -128,7 +128,7 @@ img{image-rendering:-webkit-optimize-contrast;image-rendering:high-quality}
 <div class="bg-stage"><div class="aurora"></div></div>
 
 <nav class="checkout-nav">
-  <a href="collection.html" class="checkout-back">
+  <a href="index.html#collection" class="checkout-back">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
     العودة للمتجر
   </a>
@@ -303,7 +303,7 @@ function renderCart(){
   var formEl=document.getElementById('checkoutForm');
 
   if(!cart.length){
-    itemsEl.innerHTML='<div class="cart-empty"><h3>سلتك فاضية</h3><p><a href="collection.html">ارجع للمتجر واختار منتجات</a></p></div>';
+    itemsEl.innerHTML='<div class="cart-empty"><h3>سلتك فاضية</h3><p><a href="index.html#collection">ارجع للمتجر واختار منتجات</a></p></div>';
     summaryEl.style.display='none';
     formEl.style.display='none';
     return;

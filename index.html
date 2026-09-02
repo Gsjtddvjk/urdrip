@@ -148,6 +148,8 @@ button,a,[role="button"]{-webkit-tap-highlight-color:transparent}
 .collection-head h1 em{font-family:'DM Serif Display',serif;font-style:italic;font-weight:400;background:linear-gradient(135deg,#ff2d2d,#ff6b35);-webkit-background-clip:text;background-clip:text;color:transparent}
 .collection-head .ar{font-size:18px;color:rgba(255,255,255,.6)}
 .filters{display:flex;gap:10px;margin-bottom:36px;flex-wrap:wrap}
+.filter-btn{padding:12px 20px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:rgba(255,255,255,.72);font-weight:700;cursor:pointer;transition:all .25s}
+.filter-btn:hover,.filter-btn.active{background:linear-gradient(135deg,#ff2d2d,#ff6b35);border-color:rgba(255,255,255,.25);color:#fff;box-shadow:0 10px 30px rgba(255,45,45,.2)}
 
 .products-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px}
 .product-card{border-radius:24px;overflow:hidden;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);transition:all .4s;cursor:pointer;position:relative;opacity:0;transform:translateY(30px);animation:cardReveal .6s ease forwards}
@@ -386,36 +388,23 @@ footer li:hover{color:#fff}
   <div class="sub">Curated streetwear &amp; footwear — Algeria</div>
 </section>
 
-<!-- CATEGORIES -->
-<section class="cats-section">
-  <div class="cats">
-    <article class="cat" onclick="location.href='collection.html?cat=clothes'">
-      <div class="cat-img"><img src="cat-streetwear.webp" alt="Streetwear" /></div>
-      <div class="cat-body">
-        <div class="cat-title"><h3>Streetwear</h3><span class="num">01</span></div>
-        <div class="cat-ar">ستريت وير</div>
-        <p class="cat-desc"> essentials مصممة للإطلالة العصرية.</p>
-        <a class="cat-cta" href="collection.html?cat=clothes">Explore</a>
-      </div>
-    </article>
-    <article class="cat" onclick="location.href='collection.html?cat=accessories'">
-      <div class="cat-img"><img src="cat-accessories.webp" alt="Accessories" /></div>
-      <div class="cat-body">
-        <div class="cat-title"><h3>Accessories</h3><span class="num">02</span></div>
-        <div class="cat-ar">إكسسوارات</div>
-        <p class="cat-desc">Caps، نظارات، وتفاصيل تكمّل لوكك.</p>
-        <a class="cat-cta" href="collection.html?cat=accessories">Explore</a>
-      </div>
-    </article>
-    <article class="cat" onclick="location.href='collection.html?cat=gang'">
-      <div class="cat-img"><img src="cat-sneakers.webp" alt="Sneakers" /></div>
-      <div class="cat-body">
-        <div class="cat-title"><h3>Sneakers</h3><span class="num">03</span></div>
-        <div class="cat-ar">سنيكرز</div>
-        <p class="cat-desc">أحذية حصرية مصممة للشارع.</p>
-        <a class="cat-cta" href="collection.html?cat=gang">Explore</a>
-      </div>
-    </article>
+<!-- COLLECTION -->
+<section class="cats-section" id="collection" style="padding-top:0;">
+  <div class="collection-head">
+    <div class="pre">— Shop the drop</div>
+    <h1>Collection <em>URDRIP</em></h1>
+    <div class="ar" id="collectionTitle">كل المنتجات</div>
+  </div>
+  <div class="filters">
+    <button class="filter-btn active" data-f="all">الكل</button>
+    <button class="filter-btn" data-f="clothes">ستريت وير</button>
+    <button class="filter-btn" data-f="accessories">إكسسوارات</button>
+    <button class="filter-btn" data-f="gang">سنيكرز</button>
+  </div>
+  <div class="products-grid" id="productsGrid"></div>
+  <div class="empty-state" id="emptyState" style="display:none;">
+    <h3>لا توجد منتجات في هذا التصنيف</h3>
+    <p>جرب تصنيفاً آخر أو عد لاحقاً.</p>
   </div>
 </section>
 
@@ -511,9 +500,9 @@ footer li:hover{color:#fff}
       </div>
       <p>ستريت وير جزائري حصرى — قطع محدودة، مرقومة، مصممة للشارع.</p>
     </div>
-    <div><h4>Shop</h4><ul><li onclick="location.href='collection.html?cat=clothes'">ستريت وير</li><li onclick="location.href='collection.html?cat=accessories'">إكسسوارات</li><li onclick="location.href='collection.html?cat=gang'">سنيكرز</li><li onclick="location.href='collection.html'">كل المنتجات</li></ul></div>
-    <div><h4>Brand</h4><ul><li onclick="location.href='#about'">عن البراند</li><li onclick="location.href='collection.html'">المجموعة</li><li onclick="location.href='admin.html'">الإدارة</li></ul></div>
-    <div><h4>Help</h4><ul><li onclick="location.href='collection.html'">دليل المقاسات</li><li onclick="location.href='checkout.html'">الشحن والتوصيل</li><li onclick="location.href='checkout.html'">الإرجاع</li></ul></div>
+    <div><h4>Shop</h4><ul><li onclick="location.href='#collection'">ستريت وير</li><li onclick="location.href='#collection'">إكسسوارات</li><li onclick="location.href='#collection'">سنيكرز</li><li onclick="location.href='#collection'">كل المنتجات</li></ul></div>
+    <div><h4>Brand</h4><ul><li onclick="location.href='#about'">عن البراند</li><li onclick="location.href='#collection'">المجموعة</li><li onclick="location.href='admin.html'">الإدارة</li></ul></div>
+    <div><h4>Help</h4><ul><li onclick="location.href='#collection'">دليل المقاسات</li><li onclick="location.href='checkout.html'">الشحن والتوصيل</li><li onclick="location.href='checkout.html'">الإرجاع</li></ul></div>
   </div>
   <div class="footer-bottom">
     <span>© 2026 ur drip — Algeria</span>
@@ -534,7 +523,7 @@ function cachedFetch(key,fn,ttl){
   return fn().then(function(data){_cache[key]={data:data,ts:now};return data});
 }
 
-var products=[],selectedSize=null,currentModalProduct=null;
+var products=[],selectedSize=null,currentModalProduct=null,currentFilter='all';
 
 function readLocalCache(key, ttl) {
   try {
@@ -563,10 +552,28 @@ function price(n){return(parseInt(n)||0).toLocaleString()}
 function getImgs(p){if(p.images&&Array.isArray(p.images)&&p.images.length)return p.images.filter(Boolean);if(p.image)return[p.image];return[]}
 function setDB(s){var b=document.getElementById('dbBadge'),t=document.getElementById('dbBadgeText');b.className='db-badge '+s;t.textContent=s==='connected'?'متصل':s==='disconnected'?'غير متصل':'جاري الاتصال'}
 
-function renderProducts(){}
+function renderProducts(){
+  var grid=document.getElementById('productsGrid');
+  var empty=document.getElementById('emptyState');
+  if(!grid)return;
+  var list=products.filter(function(p){return currentFilter==='all'||p.category===currentFilter;});
+  if(!list.length){grid.innerHTML='';if(empty)empty.style.display='block';return;}
+  if(empty)empty.style.display='none';
+  var map={clothes:'ستريت وير',accessories:'إكسسوارات',gang:'سنيكرز'};
+  grid.innerHTML=list.map(function(p,idx){
+    var imgs=getImgs(p);
+    var image=imgs[0]||'';
+    var badge = p.badge==='new' ? '<span class="product-badge new">NEW</span>' : p.badge==='sale' ? '<span class="product-badge sale">SALE</span>' : p.badge==='best' ? '<span class="product-badge new">HOT</span>' : '';
+    var old = p.old_price && Number(p.old_price)>Number(p.price) ? '<span class="old">'+price(p.old_price)+' دج</span>' : '';
+    var stock = Number(p.stock)>0 ? '<span class="product-stock in">IN STOCK</span>' : '<span class="product-stock out">OUT OF STOCK</span>';
+    return '<div class="product-card" data-idx="'+idx+'" onclick="openModal('+idx+')"><div class="product-img">'+(image?'<img src="'+esc(optimizeImageUrl(image,500))+'" alt="'+esc(p.name)+'" loading="lazy" decoding="async">':'')+badge+'</div><div class="product-body"><div class="product-cat">'+esc(map[p.category]||p.category)+'</div><div class="product-name">'+esc(p.name)+'</div><div class="product-price"><span class="current">'+price(p.price)+' دج</span>'+old+'</div>'+stock+'</div></div>';
+  }).join('');
+}
 
 function openModal(i){
-  var p=products[i];if(!p)return;
+  var filtered = products.filter(function(item){ return currentFilter === 'all' || item.category === currentFilter; });
+  var p = filtered[i] || products[i];
+  if(!p)return;
   document.getElementById('modalMainImg').innerHTML='<div style="padding:40px;text-align:center;color:rgba(255,255,255,.3)">جاري تحميل الصور...</div>';
   document.getElementById('modalThumbs').innerHTML='';
   var cE={clothes:'PREMIUM COLLECTION',accessories:'ACCESSORIES',gang:'SNEAKERS'};
@@ -625,6 +632,17 @@ document.getElementById('modalAdd').addEventListener('click',function(){
 });
 document.getElementById('modalBuy').addEventListener('click',function(){
   if(!currentModalProduct)return;addToCart(currentModalProduct,selectedSize);window.location.href='checkout.html';
+});
+document.querySelectorAll('.filter-btn').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active');});
+    btn.classList.add('active');
+    currentFilter = btn.dataset.f || 'all';
+    var labels = {all:'كل المنتجات',clothes:'ستريت وير',accessories:'إكسسوارات',gang:'سنيكرز'};
+    var title = document.getElementById('collectionTitle');
+    if(title) title.textContent = labels[currentFilter] || 'كل المنتجات';
+    renderProducts();
+  });
 });
 
 /* DB */
