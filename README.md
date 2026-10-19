@@ -1,125 +1,138 @@
 # URDRIP DZ — متجر إلكتروني (Streetwear · Algeria)
 
-> ✅ **بنية جديدة (v10):** كل الاتصال بقاعدة البيانات يمر عبر **بروكسي على الخادم** (`/api/*`).
-> لا يوجد أي مفتاح Supabase في كود الواجهة (frontend) — المفتاح موجود على السيرفر فقط.
-> الثيم: **Glow iOS** — أبيض، شفاف (glassmorphism)، إضاءة ناعمة، بدون أي حركة في الخلفية.
+> ✅ **بنية مسطّحة:** كل الملفات في مجلد واحد — لا مجلدات فرعية.
+> ✅ **لا مفاتيح في الواجهة:** كل نداءات قاعدة البيانات تمر عبر `api.js` على الخادم.
+> ✅ **الثيم:** Glow iOS — أبيض، زجاجي، إضاءة ناعمة، بدون حركة في الخلفية.
+> ✅ **ترتيب المنتجات:** بالسحب والإفلات من لوحة التحكم.
 
 ---
 
-## 1. البنية
+## 1. التشغيل
 
+```bash
+npm install        # مرة واحدة (اختياري — للأدوات فقط)
+npm run dev        # http://localhost:3000
 ```
-الزائر ──► index.html / checkout.html / admin.html
-                 │  fetch('/api/...')          ← بدون أي مفتاح
-                 ▼
-        Vercel Serverless (api/*.js)  ←  Supabase URL + KEY (متغيرات بيئة)
-                 │  fetch Supabase REST/RPC
-                 ▼
-            Supabase (vmsrldkihpxkfbgvswnf)
-```
+
+> ⚠️ لا تفتح `index.html` مباشرة من المجلد في وضع الإنتاج.
+> محلياً يعمل حتى بالنقر المزدوج thanks to `config.local.js` (احتياطي، لا يُنشر).
+
+---
+
+## 2. الملفات (كلها في الجذر)
 
 | الملف | الوظيفة |
 |-------|---------|
-| `api/_lib.js` | أدوات مشتركة: قراءة الـ env، جلسات الأدمن الموقّعة، نداء Supabase |
-| `api/_config.js` | **بيانات احتياطية على السيرفر فقط** (لا تُنشر كصفحة) |
-| `api/products.js` | `GET /api/products` — قائمة المنتجات (+ `?id=` لمنتج واحد) |
-| `api/categories.js` | `GET /api/categories` — التصنيفات |
-| `api/order.js` | `POST /api/order` — إنشاء الطلب عبر `place_order()` RPC |
-| `api/auth.js` | `POST /api/auth` — دخول الأدمن (Supabase Auth أو كلمة مرور على السيرفر) |
-| `api/db.js` | `/api/db` — عمليات لوحة التحكم (RLS + allowlist `admin_users`) |
-| `api/health.js` | `GET /api/health` — فحص الاتصال بقاعدة البيانات |
+| `index.html` | الصفحة الرئيسية (ثيم Glow iOS) — المنتجات فقط |
+| `checkout.html` / `checkout.js` | صفحة الدفع (69 ولاية) |
+| `admin.html` / `admin.js` / `admin.css` | لوحة التحكم (Supabase Auth + ترتيب المنتجات) |
+| `api.js` | **الخادم**: كل مسارات `/api/*` في ملف واحد |
 | `api-client.js` | عميل الـ API في المتصفح (بدون مفاتيح) |
-| `server.js` | سيرفر تطوير محلي يشغّل نفس الـ API بدون Vercel |
+| `config.js` | إعدادات عامة (بلا مفاتيح) |
+| `config.local.js` | احتياطي محلي فقط (لا يُنشر) |
+| `server.js` | سيرفر تطوير محلي يشغّل `api.js` |
+| `vercel.json` | إعداد النشر + CSP + الكاش |
+| `db-schema.sql` | مخطط القاعدة المُطبَّق (مرجع) |
+| `db-add-sort-order.sql` | **SQL يُنفَّذ مرة واحدة** لتفعيل الترتيب اليدوي |
+| `db-rollback.sql` | استرجاع السياسات (طارئ فقط) |
+| `DEPLOY.md` | دليل النشر الآمن |
+| `test.mjs` / `test-admin.mjs` / `test-file.mjs` | الاختبارات |
 
 ---
 
-## 2. التشغيل محلياً
+## 3. المسارات (كلها في `api.js`)
 
-```bash
-npm install          # (اختياري — للأدوات فقط)
-copy .env.example .env
-npm run dev          # http://localhost:3000
-```
-
-> ⚠️ **لا تفتح `index.html` مباشرة من المجلد (نقر مزدوج).** المتصفح لن يجد `/api`.
-> استخدم دائماً `npm run dev` أو `npx vercel dev`.
+| المسار | الوظيفة |
+|--------|---------|
+| `GET /api/products[?id=]` | المنتجات النشطة (مرتّبة يدوياً إن كان العمود موجوداً) |
+| `GET /api/categories` | التصنيفات |
+| `POST /api/order` | إنشاء الطلب عبر `place_order()` RPC — الأسعار على السيرفر |
+| `POST /api/auth` | دخول الأدمن (Supabase Auth أو كلمة مرور من متغيّرات البيئة) |
+| `ALL /api/db?table=…` | عمليات اللوحة (محمية بـ RLS + `admin_users`) |
+| `POST /api/db?table=products&action=reorder` | **حفظ ترتيب المنتجات** |
+| `GET /api/health` | فحص الاتصال |
 
 ---
 
-## 3. متغيّرات البيئة (إلزامية على Vercel)
+## 4. ترتيب المنتجات (جديد)
 
-Vercel → Project → Settings → Environment Variables:
+1. نفّذ `db-add-sort-order.sql` في Supabase → SQL Editor (مرة واحدة، آمنة).
+2. من لوحة التحكم: **ترتيب المنتجات** (في القائمة الجانبية أو زر «ترتيب المنتجات»).
+3. اسحب المنتج أو استخدم الأسهم ⬆️ ⬇️ ثم **حفظ الترتيب**.
+4. يظهر الترتيب الجديد في المتجر مباشرة.
+
+> بدون تنفيذ الـ SQL يعمل الموقع طبيعياً، لكن حفظ الترتيب يعرض رسالة واضحة.
+
+---
+
+## 5. متغيّرات البيئة (Vercel)
 
 | المتغيّر | مطلوب | الوصف |
 |----------|-------|-------|
 | `SUPABASE_URL` | نعم | `https://vmsrldkihpxkfbgvswnf.supabase.co` |
-| `SUPABASE_ANON_KEY` | نعم | مفتاح anon (من Supabase → Settings → API) |
-| `SUPABASE_SERVICE_ROLE_KEY` | اختياري | مطلوب فقط للدخول بكلمة مرور (rotate القديم أولاً!) |
+| `SUPABASE_ANON_KEY` | نعم | من Supabase → Settings → API |
+| `SUPABASE_SERVICE_ROLE_KEY` | اختياري | مطلوب للدخول بكلمة مرور (دوّر المفتاح القديم!) |
 | `ADMIN_PASSWORD` | اختياري | كلمة مرور الأدمن (تُقارَن على السيرفر) |
 | `SESSION_SECRET` | نعم | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 
-> `api/_config.js` يحتوي على قيم احتياطية تعمل مباشرة، لكن **الأفضل** ضبطها في Vercel
-> وتدوير مفتاح `service_role` القديم (كان منشوراً في الإصدار القديم).
+---
+
+## 6. الثيم — Glow iOS
+
+- خلفية بيضاء متدرّجة + توهّجات ضوئية ثابتة (أزرق/وردي/بنفسجي).
+- أسطح زجاجية `backdrop-filter: blur + saturate` بحدود بيضاء ناعمة.
+- **صور المنتجات بألوانها الأصلية** (بدون فلتر أبيض وأسود).
+- **بدون أي حركة متكررة** في الخلفية.
+- خط `Inter` فقط (طلب شبكة واحد) + خط النظام للـ monospace.
+- نفس الهوية في لوحة التحكم.
 
 ---
 
-## 4. الثيم — Glow iOS
-
-- خلفية بيضاء متدرّجة مع **توهّجات ضوئية ثابتة** (أزرق/وردي/بنفسجي بشفافية عالية).
-- أسطح **زجاجية** (`backdrop-filter: blur + saturate`) مع حدود بيضاء وحواف ناعمة.
-- صور المنتجات بالأبيض والأسود (`grayscale`) وتتحوّل للون عند المرور.
-- **بدون أي صورة متحركة أو أنيميشن متكرر** في الخلفية.
-- خطوط: `Inter` فقط + خط النظام للمن monospace (طلب شبكة أقل = تحميل أسرع).
-- دعم `prefers-reduced-motion` + تخطيط متجاوب للجوال.
-
----
-
-## 5. الأداء
+## 7. الأداء
 
 | التقنية | الأثر |
 |---------|-------|
-| تخزين محلي `localStorage` للمنتجات (24 ساعة) | فتح فوري عند العودة |
-| `Cache-Control: s-maxage` على `/api/products` و `/api/categories` | رد من الـ edge بدون لمس القاعدة |
-| Cloudinary `q_auto,f_auto,w_N` | صور أصغر/formats محسّنة تلقائياً |
-| صورة Modal تظهر فوراً من بيانات القائمة | لا انتظار |
-| طلب شبكة واحد للخطوط + `preconnect` | وقت رسم أول (FCP) أقصر |
+| `localStorage` للمنتجات (24 ساعة) | فتح فوري |
+| `s-maxage` على `/api/products` | رد من الـ edge بلا لمس القاعدة |
+| Cloudinary `q_auto,f_auto,w_N` | صور أصغر تلقائياً |
+| صورة Modal تظهر فوراً | بلا انتظار |
+| `preload` + `preconnect` للخط | FCP أسرع |
 
 ---
 
-## 6. الأمان
+## 8. الأمان
 
-- ✅ لا مفتاح Supabase في أي ملف يُقدَّم للمتصفح (اختبار تلقائي في `tests/e2e.mjs`).
-- ✅ الطلبات تُسجَّل عبر `place_order()` RPC — الأسعار تُحسب على السيرفر، والمتصفح لا يرسل أسعاراً.
-- ✅ مفتاح idempotency يمنع تكرار الطلب عند إعادة المحاولة.
-- ✅ RLS + `admin_users` — الطلبات والإعدادات غير مقروءة إلا للمشرف.
-- ✅ `orders_guard` يمنع تعديل بيانات الزبون/المبلغ بعد الإنشاء ويقيّد انتقالات الحالة.
-- ✅ حد 5 طلبات/ساعة/رقم هاتف (rate limit على السيرفر).
-- ✅ CSP صارم + `X-Frame-Options: DENY` + `no-store` على صفحات الأدمن.
-
----
-
-## 7. النشر على Vercel
-
-1. ارفع المجلد إلى GitHub.
-2. Vercel → Import → Framework: **Other** → Build Command: *(فارغ)* → Output: *(فارغ)*.
-3. أضف متغيّرات البيئة (القسم 3).
-4. Deploy — مجلد `api/` يُنشر تلقائياً كـ Serverless Functions.
+- ✅ صفر مفاتيح في أي ملف يُقدَّم للمتصفح (اختبار تلقائي).
+- ✅ الطلبات عبر `place_order()` RPC — المتصفح لا يرسل أسعاراً.
+- ✅ مفتاح idempotency يمنع تكرار الطلب.
+- ✅ RLS + `admin_users` — الطلبات والإعدادات للمشرف فقط.
+- ✅ `orders_guard`: بيانات الزبون والمبلغ لا تُعدَّل + انتقالات حالة محكومة.
+- ✅ حد 5 طلبات/ساعة/هاتف.
+- ✅ CSP صارم، `no-store` لصفحات الأدمن، و`api.js` محجوب عن الزوار.
 
 ---
 
-## 8. الاختبارات
+## 9. النشر على Vercel
+
+1. ادفع المجلد إلى GitHub.
+2. Vercel → Import → Framework: **Other** → Build: *(فارغ)* → Output: *(فارغ)*.
+3. أضف متغيّرات البيئة (القسم 5).
+4. Deploy — `api.js` يُنشر تلقائياً كـ Serverless Function عبر `vercel.json`.
+
+---
+
+## 10. الاختبارات
 
 ```bash
-npm test             # 35 اختبار متصفح (Puppeteer) — Supabase مُحاكى
+npm test           # 35 اختبار متصفح (المتجر + الدفع + اللوحة)
+node test-admin.mjs # 6 اختبارات ترتيب المنتجات
+npm run test:file  # يعمل بدون سيرفر (file://)
 ```
-
-لقطات الشاشة تُحفظ في `%TEMP%/urdrip-shots` (خارج المشروع).
 
 ---
 
-## 9. ملاحظات
+## 11. ملاحظات
 
-- التصنيفات: `clothes` (ستريت وير) · `accessories` (إكسسوارات) · `gang` (سنيكرز).
+- التصنيفات: `clothes` · `accessories` · `gang`.
 - التوصيل: 69 ولاية — للباب 700 دج / المكتب 600 دج.
 - Instagram: `@urdrip_dz`
-- `supabase/migrations/` يوثّق مخطط القاعدة الحالي — لا تشغّله على قاعدة مُطبَّقة.
