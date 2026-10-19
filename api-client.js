@@ -1,9 +1,33 @@
 /* URDRIP — frontend API client.
- * All database traffic goes through the same-origin /api proxy, so no Supabase
- * key is ever present in the page source. */
+ *
+ * Two transports, same interface:
+ *   1. /api/*  — the server-side proxy (production + `npm run dev`).
+ *                No Supabase key in the browser.
+ *   2. direct  — used ONLY when the page is opened from the filesystem
+ *                (file://) and no server exists. It reads the credentials
+ *                from config.local.js, which is never deployed.
+ */
 (function (global) {
   'use strict';
   var BASE = (global.URDRIP && global.URDRIP.API_BASE) || '/api';
+
+  /* ---------- local fallback (file:// only) ---------- */
+  var LOCAL = null;
+  var localReady = (function () {
+    if (global.location && global.location.protocol !== 'file:') return Promise.resolve(null);
+    return new Promise(function (resolve) {
+      var s = document.createElement('script');
+      s.src = 'config.local.js';
+      s.async = false;
+      s.onload = function () { resolve(global.URDRIP_LOCAL || null); };
+      s.onerror = function () { resolve(null); };
+      document.head.appendChild(s);
+    });
+  })();
+
+  function localCfg() {
+    return localReady.then(function (c) { LOCAL = c; return c; });
+  }
 
   function url(path, params) {
     var q = '';
@@ -17,6 +41,63 @@
       if (parts.length) q = '?' + parts.join('&');
     }
     return BASE + path + q;
+  }
+
+  function parse(text) {
+    if (!text) return null;
+    try { return JSON.parse(text); } catch (e) { return { message: text }; }
+  }
+
+  /* The proxy paths are mapped onto the matching Supabase REST calls. */
+  var LIST_SELECT = 'id,name,category,price,old_price,color,sizes,image,badge,description,stock,active,created_at';
+  var FULL_SELECT = 'id,name,category,price,old_price,color,sizes,image,images,badge,description,stock,active,created_at';
+
+  function toSupabase(path, opts) {
+    var p = String(path);
+    if (p === '/products') {
+      var id = opts && opts.params && opts.params.id;
+      if (id) return { path: 'products?select=' + FULL_SELECT + '&id=eq.' + encodeURIComponent(id) + '&active=eq.true' };
+      return { path: 'products?select=' + LIST_SELECT + '&active=eq.true&order=created_at.desc' };
+    }
+    if (p === '/categories') {
+      return { path: 'categories?select=id,name,description,sort_order,active&active=eq.true&order=sort_order.asc' };
+    }
+    if (p === '/order') return { path: 'rpc/place_order' };
+    return null;   /* auth + admin need the server */
+  }
+
+  /* Calls Supabase REST directly with the local (anon) key. */
+  function direct(path, opts) {
+    opts = opts || {};
+    var mapped = toSupabase(path, opts);
+    if (!mapped) return Promise.resolve(null);
+    return localCfg().then(function (cfg) {
+      if (!cfg || !cfg.SUPABASE_ANON_KEY) return null;
+      var target = cfg.SUPABASE_URL + '/rest/v1/' + mapped.path;
+      var init = {
+        method: opts.method || 'GET',
+        headers: {
+          apikey: cfg.SUPABASE_ANON_KEY,
+          Authorization: 'Bearer ' + cfg.SUPABASE_ANON_KEY
+        },
+        cache: 'no-store'
+      };
+      if (opts.body !== undefined) {
+        init.headers['Content-Type'] = 'application/json';
+        init.body = JSON.stringify(opts.body);
+      }
+      return fetch(target, init).then(function (r) {
+        return r.text().then(function (t) {
+          var data = parse(t);
+          if (!r.ok) {
+            var err = new Error((data && (data.message || data.error)) || ('http_' + r.status));
+            err.status = r.status; err.data = data; throw err;
+          }
+          if (data && typeof data === 'object') data.__count = null;
+          return data;
+        });
+      });
+    });
   }
 
   function request(path, opts) {
@@ -33,8 +114,7 @@
       clearTimeout(timer);
       var cr = r.headers.get('Content-Range');
       return r.text().then(function (t) {
-        var data = null;
-        if (t) { try { data = JSON.parse(t); } catch (e) { data = { message: t }; } }
+        var data = parse(t);
         if (!r.ok) {
           var err = new Error((data && (data.message || data.error)) || ('http_' + r.status));
           err.status = r.status;
@@ -50,10 +130,17 @@
     }).catch(function (e) {
       clearTimeout(timer);
       if (e && e.status) throw e;
-      /* The API proxy is missing or unreachable (e.g. the page was opened as a
-       * local file, or the site was deployed without the /api functions). */
-      var msg = (e && e.name === 'AbortError') ? 'timeout' : 'api_unavailable';
-      var err2 = new Error(msg); err2.status = 0; throw err2;
+      /* The proxy is unreachable -> fall back to a direct call (file:// mode). */
+      return direct(path, opts).then(function (data) {
+        if (data === null) {
+          var err2 = new Error((e && e.name === 'AbortError') ? 'timeout' : 'api_unavailable');
+          err2.status = 0; throw err2;
+        }
+        return data;
+      }).catch(function (e2) {
+        if (e2 && e2.status) throw e2;
+        var err3 = new Error('api_unavailable'); err3.status = 0; throw err3;
+      });
     });
   }
 
@@ -77,6 +164,7 @@
     db: function (opts) {
       opts = opts || {};
       var path = '/db?table=' + encodeURIComponent(opts.table);
+      if (opts.action) path += '&action=' + encodeURIComponent(opts.action);
       if (opts.id !== undefined && opts.id !== null && opts.id !== '') path += '&id=' + encodeURIComponent(opts.id);
       if (opts.from) path += '&from=' + encodeURIComponent(opts.from);
       if (opts.q) path += '&q=' + encodeURIComponent(opts.q);

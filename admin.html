@@ -53,6 +53,10 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
         إضافة منتج
       </a>
+      <a class="sidebar-link" href="#" data-section="reorder">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5h10M12 9h10M12 15h10M12 19h10"/><path d="M2 7l3-3 3 3M5 4v16"/></svg>
+        ترتيب المنتجات
+      </a>
       <a class="sidebar-link" href="#" data-section="categories">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
         التصنيفات
@@ -116,7 +120,10 @@
     <section class="admin-section" id="products">
       <div class="section-header">
         <h2>إدارة المنتجات</h2>
-        <button class="btn-add" id="addProductBtn">+ إضافة منتج</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn-cancel" id="reorderBtn">ترتيب المنتجات</button>
+          <button class="btn-add" id="addProductBtn">+ إضافة منتج</button>
+        </div>
       </div>
       <div class="products-search">
         <input type="text" id="searchProducts" placeholder="بحث عن منتج...">
@@ -127,6 +134,23 @@
           <tbody id="productsTableBody"></tbody>
         </table>
       </div>
+    </section>
+
+    <!-- REORDER PRODUCTS -->
+    <section class="admin-section" id="reorder">
+      <div class="section-header">
+        <h2>ترتيب المنتجات</h2>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn-save" id="saveOrderBtn">حفظ الترتيب</button>
+          <button class="btn-cancel" id="cancelOrderBtn">رجوع</button>
+        </div>
+      </div>
+      <p style="color:var(--ts);font-size:13px;margin-bottom:16px;line-height:1.7">
+        اسحب المنتج لتغيير مكانه، أو استخدم الأسهم ⬆️ ⬇️. الترتيب هنا هو نفس الترتيب
+        الذي يظهر به المنتج في المتجر.
+      </p>
+      <div id="reorderList" class="reorder-list"></div>
+      <p id="reorderMsg" style="font-size:13px;margin-top:14px;display:none"></p>
     </section>
 
     <!-- ADD PRODUCT -->

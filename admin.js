@@ -101,13 +101,16 @@
         var st = e && e.status;
         if (st === 401 && attempt === 0 && await refresh()) continue;
         if (st === 401) { logout(true); throw new Error('انتهت الجلسة. سجّل الدخول من جديد.'); }
-        if (st === 403) throw new Error('ليس لديك صلاحية لهذه العملية.');
         var msg = '';
         if (e && e.data && e.data.message) msg = String(e.data.message);
         if (e && e.data && e.data.error) msg = String(e.data.error);
         if (/admin_service_key_missing/.test(msg)) {
           throw new Error('ناقص مفتاح service_role. أضف SUPABASE_SERVICE_ROLE_KEY إلى متغيّرات البيئة (أو استخدم حساب Supabase Auth مضافاً إلى admin_users).');
         }
+        if (/sort_order_column_missing/.test(msg)) {
+          throw new Error('عمود sort_order غير موجود في القاعدة. نفّذ db-add-sort-order.sql في Supabase ثم أعد المحاولة.');
+        }
+        if (st === 403) throw new Error('ليس لديك صلاحية لهذه العملية.');
         if (/invalid_status_transition/.test(msg)) throw new Error('انتقال الحالة غير مسموح.');
         if (/order_immutable/.test(msg)) throw new Error('لا يمكن تعديل بيانات الزبون أو المبلغ بعد إنشاء الطلب.');
         if (st === 409) throw new Error('تعارض في البيانات (قيد مكرر أو مرتبط).');
@@ -177,16 +180,19 @@
   /* ---------- products ---------- */
   async function loadProducts() {
     try {
-      products = (await api('GET', 'products?select=id,name,category,price,old_price,color,sizes,image,badge,description,stock,active,created_at&order=created_at.desc&limit=500')).data || [];
+      products = (await api('GET', 'products?select=id,name,category,price,old_price,color,sizes,image,badge,description,stock,active,created_at,sort_order&order=created_at.desc&limit=500')).data || [];
       renderProducts($('searchProducts').value);
+      /* قائمة الترتيب تُحدَّث تلقائياً عند وصول المنتجات */
+      if ($('reorder') && $('reorder').classList.contains('active')) { orderList = products.slice(); renderOrder(); }
     } catch (e) { toast(e.message, true); $('productsTableBody').innerHTML = '<tr><td colspan="6" class="empty-state">تعذر تحميل المنتجات</td></tr>'; }
   }
   function renderProducts(q) {
     q = (q || '').trim().toLowerCase();
     var list = q ? products.filter(function (p) { return String(p.name).toLowerCase().indexOf(q) !== -1 || String(p.category).toLowerCase().indexOf(q) !== -1; }) : products;
-    $('productsTableBody').innerHTML = list.length ? list.map(function (p) {
+    $('productsTableBody').innerHTML = list.length ? list.map(function (p, i) {
       var img = safeImg(p.image), b = p.badge ? '<span class="badge ' + esc(p.badge) + '" style="margin-inline-start:8px">' + esc(BADGE[p.badge] || p.badge) + '</span>' : '';
-      return '<tr><td>' + (img ? '<img src="' + esc(img) + '" alt="" loading="lazy">' : '') + '</td><td><strong>' + esc(p.name) + '</strong>' + b + '</td><td>' + esc(CAT[p.category] || p.category) + '</td><td>' + num(p.price) + ' دج<br><small>المخزون: ' + num(p.stock) + '</small></td>' +
+      var pos = (p.sort_order != null && p.sort_order > 0) ? '<span class="badge" style="background:rgba(255,255,255,.08);color:var(--td)">#' + num(p.sort_order) + '</span>' : '';
+      return '<tr><td>' + (img ? '<img src="' + esc(img) + '" alt="" loading="lazy">' : '') + '</td><td><strong>' + esc(p.name) + '</strong>' + b + pos + '</td><td>' + esc(CAT[p.category] || p.category) + '</td><td>' + num(p.price) + ' دج<br><small>المخزون: ' + num(p.stock) + '</small></td>' +
         '<td><span class="' + (p.active ? 'status-active' : 'status-inactive') + '">' + (p.active ? 'نشط' : 'غير نشط') + '</span></td>' +
         '<td><div class="table-actions"><button type="button" class="btn-edit" data-act="edit-product" data-id="' + p.id + '">تعديل</button>' +
         '<button type="button" class="btn-edit" data-act="toggle-product" data-id="' + p.id + '">' + (p.active ? 'تعطيل' : 'تفعيل') + '</button>' +
@@ -210,6 +216,121 @@
   }
   function addFormImages() { var a = []; for (var i = 1; i <= 3; i++) { var im = $('previewImg' + i); if (im && im.getAttribute('src')) a.push(im.src); } return a; }
   function setBusy(btn, on, label) { if (!btn) return; btn.disabled = on; if (label) btn.textContent = label; }
+
+  /* ---------- ترتيب المنتجات (سحب وإفلات) ---------- */
+  var orderList = [], dragId = null;
+
+  function renderOrder() {
+    var box = $('reorderList');
+    if (!box) return;
+    if (!orderList.length) {
+      box.innerHTML = '<div class="reorder-empty">لا توجد منتجات لترتيبها.</div>';
+      return;
+    }
+    box.innerHTML = orderList.map(function (p, i) {
+      var img = safeImg(p.image);
+      return '<div class="reorder-item" draggable="true" data-id="' + esc(p.id) + '">' +
+        '<span class="pos">' + (i + 1) + '</span>' +
+        '<span class="grip">⠿</span>' +
+        (img ? '<img src="' + esc(img) + '" alt="" loading="lazy">' : '<span class="ph"></span>') +
+        '<div class="info"><strong>' + esc(p.name) + '</strong>' +
+        '<small>' + esc(CAT[p.category] || p.category) + ' · ' + num(p.price) + ' دج' +
+        (p.active ? '' : ' · مخفي') + '</small></div>' +
+        '<div class="moves">' +
+        '<button type="button" data-move="up" data-id="' + esc(p.id) + '" title="لأعلى"' + (i === 0 ? ' disabled' : '') + '>▲</button>' +
+        '<button type="button" data-move="down" data-id="' + esc(p.id) + '" title="لأسفل"' + (i === orderList.length - 1 ? ' disabled' : '') + '>▼</button>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  function moveItem(id, dir) {
+    var i = orderList.findIndex(function (p) { return String(p.id) === String(id); });
+    if (i === -1) return;
+    var j = dir === 'up' ? i - 1 : i + 1;
+    if (j < 0 || j >= orderList.length) return;
+    var tmp = orderList[i]; orderList[i] = orderList[j]; orderList[j] = tmp;
+    renderOrder();
+  }
+
+  function initReorder() {
+    var box = $('reorderList');
+    if (!box) return;
+
+    box.addEventListener('dragstart', function (e) {
+      var it = e.target.closest && e.target.closest('.reorder-item');
+      if (!it) return;
+      dragId = it.getAttribute('data-id');
+      it.classList.add('dragging');
+      try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragId); } catch (err) {}
+    });
+    box.addEventListener('dragend', function () {
+      dragId = null;
+      box.querySelectorAll('.reorder-item').forEach(function (n) { n.classList.remove('dragging', 'drag-over'); });
+    });
+    box.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      var it = e.target.closest && e.target.closest('.reorder-item');
+      if (!it) return;
+      box.querySelectorAll('.reorder-item.drag-over').forEach(function (n) { n.classList.remove('drag-over'); });
+      it.classList.add('drag-over');
+    });
+    box.addEventListener('drop', function (e) {
+      e.preventDefault();
+      var it = e.target.closest && e.target.closest('.reorder-item');
+      if (!it || !dragId) return;
+      var targetId = it.getAttribute('data-id');
+      if (targetId === dragId) return;
+      var from = orderList.findIndex(function (p) { return String(p.id) === String(dragId); });
+      var to = orderList.findIndex(function (p) { return String(p.id) === String(targetId); });
+      if (from === -1 || to === -1) return;
+      var moved = orderList.splice(from, 1)[0];
+      orderList.splice(to, 0, moved);
+      renderOrder();
+    });
+    /* أسهم التحريك (للمستخدمين على الجوال) */
+    box.addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('[data-move]');
+      if (!b) return;
+      moveItem(b.getAttribute('data-id'), b.getAttribute('data-move'));
+    });
+  }
+
+  async function saveOrder() {
+    var btn = $('saveOrderBtn'), msg = $('reorderMsg');
+    if (!orderList.length) return;
+    setBusy(btn, true, 'جاري الحفظ...');
+    if (msg) msg.style.display = 'none';
+    try {
+      var res = await API.db({
+        method: 'POST', table: 'products', action: 'reorder',
+        body: { order: orderList.map(function (p) { return p.id; }) },
+        token: session.access_token
+      });
+      if (msg) {
+        msg.textContent = '✅ تم حفظ الترتيب (' + (res.updated || orderList.length) + ' منتج).';
+        msg.style.color = '#28c850';
+        msg.style.display = 'block';
+      }
+      toast('تم حفظ ترتيب المنتجات');
+      await loadProducts();
+    } catch (e) {
+      var text = (e && e.data && (e.data.message || e.data.error)) ? String(e.data.message || e.data.error) : (e && e.message) || '';
+      if (/sort_order_column_missing/.test(text)) {
+        text = 'عمود sort_order غير موجود في القاعدة. نفّذ db-add-sort-order.sql في Supabase ثم أعد المحاولة.';
+      } else if (/admin_service_key_missing/.test(text)) {
+        text = 'ناقص مفتاح service_role. أضف SUPABASE_SERVICE_ROLE_KEY إلى متغيّرات البيئة، أو استخدم حساب Supabase Auth مضافاً إلى admin_users.';
+      }
+      if (msg) { msg.textContent = '❌ ' + text; msg.style.color = '#f03e3e'; msg.style.display = 'block'; }
+      toast(text || 'تعذر حفظ الترتيب', true);
+    } finally { setBusy(btn, false, 'حفظ الترتيب'); }
+  }
+
+  async function openReorder() {
+    if (!products.length) await loadProducts();
+    orderList = products.slice();
+    renderOrder();
+    showSection('reorder', 'ترتيب المنتجات');
+  }
 
   async function createProduct(e) {
     e.preventDefault(); if (uploading > 0) return toast('جاري رفع الصور... انتظر قليلاً', true);
@@ -402,6 +523,7 @@
     document.querySelectorAll('.sidebar-link[data-section]').forEach(function (l) { l.classList.toggle('active', l.dataset.section === id); });
     $('sidebar').classList.remove('active');
     if (id === 'orders') loadOrders(); if (id === 'dashboard') loadDashboard();
+    if (id === 'reorder') { if (!orderList.length) orderList = products.slice(); renderOrder(); }
   }
   async function refreshAll() { await Promise.all([loadProducts(), loadCategories()]); await loadDashboard(); }
 
@@ -416,10 +538,14 @@
     else if (a === 'orders-next') { orderState.page++; loadOrders(); }
   });
   document.addEventListener('DOMContentLoaded', function () {
-    var titles = { dashboard: 'لوحة التحكم', products: 'إدارة المنتجات', 'add-product': 'إضافة منتج جديد', 'edit-product': 'تعديل المنتج', categories: 'التصنيفات', orders: 'الطلبات', settings: 'الإعدادات' };
+    var titles = { dashboard: 'لوحة التحكم', products: 'إدارة المنتجات', 'add-product': 'إضافة منتج جديد', 'edit-product': 'تعديل المنتج', categories: 'التصنيفات', orders: 'الطلبات', settings: 'الإعدادات', reorder: 'ترتيب المنتجات' };
     document.querySelectorAll('.sidebar-link[data-section]').forEach(function (l) { l.addEventListener('click', function (e) { e.preventDefault(); showSection(l.dataset.section, titles[l.dataset.section]); }); });
     $('sidebarToggle').addEventListener('click', function () { $('sidebar').classList.toggle('active'); });
     $('loginBtn').addEventListener('click', login);
+    $('reorderBtn').addEventListener('click', openReorder);
+    $('saveOrderBtn').addEventListener('click', saveOrder);
+    $('cancelOrderBtn').addEventListener('click', function () { showSection('products', 'إدارة المنتجات'); });
+    initReorder();
     ['lockEmail', 'lockPass'].forEach(function (i) { $(i).addEventListener('keydown', function (e) { if (e.key === 'Enter') login(); }); });
     document.querySelectorAll('[data-logout]').forEach(function (b) { b.addEventListener('click', function () { logout(); }); });
     $('searchProducts').addEventListener('input', function () { renderProducts(this.value); });

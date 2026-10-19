@@ -1,0 +1,20 @@
+﻿// Verifies the storefront works when index.html is opened directly (file://).
+import puppeteer from 'puppeteer';
+import fs from 'fs'; import path from 'path';
+import { fileURLToPath } from 'url';
+const ROOT = path.dirname(fileURLToPath(import.meta.url));
+const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--allow-file-access-from-files'], executablePath: fs.existsSync(CHROME) ? CHROME : undefined });
+const page = await browser.newPage();
+await page.setViewport({ width: 1440, height: 950 });
+page.on('pageerror', e => console.log('PAGEERROR:', e.message));
+page.on('response', r => { if (/supabase\.co/.test(r.url())) console.log('  SUPABASE', r.status(), r.url().replace(/https:\/\/[^/]+/, '')); });
+const fileUrl = 'file:///' + path.join(ROOT, 'index.html').replace(/\\/g, '/');
+console.log('opening:', fileUrl);
+await page.goto(fileUrl, { waitUntil: 'networkidle2' });
+await new Promise(r => setTimeout(r, 2500));
+console.log('badge  :', await page.$eval('#dbBadgeText', e => e.textContent));
+console.log('cards  :', (await page.$$('.product-card')).length);
+console.log('filters:', (await page.$$('#filters .filter-btn')).map(async b => (await b.getProperty('textContent')).jsonValue()).length, 'buttons');
+await page.screenshot({ path: path.join(ROOT, '..', '..', 'AppData', 'Local', 'Temp', 'opencode', 'file_mode.png') });
+await browser.close();

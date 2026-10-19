@@ -1,28 +1,24 @@
-/* URDRIP — local development server (zero dependencies).
+/* URDRIP — سيرفر التطوير المحلي (بدون أي تبعيات).
  *
- * Serves the static site AND mounts the same /api handlers that Vercel runs
- * in production, so `npm run dev` behaves exactly like the deployed site:
- * the browser still never sees a Supabase key.
- *
- *   node server.js            -> http://localhost:3000
+ * يقدّم الملفات الساكنة + نفس مسارات /api التي تعمل على Vercel.
+ *   node server.js          ->  http://localhost:3000
  *   PORT=4000 node server.js
  */
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
+import api from './api.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = __dirname;
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 
-/* Tiny .env loader (no dependencies) so `npm run dev` can be configured
- * without installing anything. Existing environment variables win. */
+/* قارئ .env صغير (بدون تبعيات). متغيّرات البيئة القائمة لها الأولوية. */
 (function loadEnv() {
   const file = path.join(ROOT, '.env');
   if (!fs.existsSync(file)) return;
-  const text = fs.readFileSync(file, 'utf8');
-  for (const line of text.split(/\r?\n/)) {
+  for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
     const t = line.trim();
     if (!t || t.startsWith('#')) continue;
     const eq = t.indexOf('=');
@@ -52,26 +48,7 @@ const MIME = {
   '.md': 'text/markdown; charset=utf-8'
 };
 
-/* The API routes, exactly the ones Vercel will run. */
-const ROUTES = {
-  '/api/products': './api/products.js',
-  '/api/categories': './api/categories.js',
-  '/api/order': './api/order.js',
-  '/api/auth': './api/auth.js',
-  '/api/db': './api/db.js',
-  '/api/health': './api/health.js'
-};
-
-function readBody(req) {
-  return new Promise((resolve, reject) => {
-    let raw = '';
-    req.on('data', c => { raw += c; });
-    req.on('end', () => resolve(raw));
-    req.on('error', reject);
-  });
-}
-
-/* Minimal shim of the Vercel req/res objects. */
+/* شيم الـ req/res كما في Vercel. */
 function makeRes(res) {
   const out = {
     statusCode: 200,
@@ -81,8 +58,7 @@ function makeRes(res) {
     removeHeader(k) { delete out.headers[k]; },
     status(code) { out.statusCode = code; return out; },
     end(body) {
-      const h = Object.assign({}, out.headers);
-      for (const [k, v] of Object.entries(h)) res.setHeader(k, v);
+      for (const [k, v] of Object.entries(out.headers)) res.setHeader(k, v);
       res.statusCode = out.statusCode;
       res.end(body === undefined ? '' : body);
       return out;
@@ -90,43 +66,42 @@ function makeRes(res) {
   };
   return out;
 }
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
-  const pathname = url.pathname;
 
-  /* ---- API routes ---- */
-  if (pathname.startsWith('/api/')) {
-    const file = ROUTES[pathname];
-    if (!file) { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'not_found' })); return; }
+  /* ---- /api ---- */
+  if (url.pathname.startsWith('/api/')) {
     try {
-      const mod = await import(pathToFileURL(path.join(ROOT, file)).href);
       const query = {};
       for (const [k, v] of url.searchParams) query[k] = v;
-      /* The request body is NOT read here: each handler reads it itself
-       * (readBody), exactly like a Vercel function does. Reading it twice
-       * would leave the second reader waiting on an already-ended stream. */
-      const vreq = Object.assign(req, { query });
-      await mod.default(vreq, makeRes(res));
+      /* لا نقرأ الـ body هنا: كل handler يقرأه بنفسه (readBody). */
+      await api(Object.assign(req, { query }), makeRes(res));
     } catch (e) {
-      console.error('API error on', pathname, e);
-      if (!res.headersSent) { res.writeHead(500, { 'Content-Type': 'application/json' }); }
-      res.end(JSON.stringify({ error: 'server_error', detail: String(e && e.message || e) }));
+      console.error('API error on', url.pathname, e);
+      if (!res.headersSent) res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'server_error', detail: String((e && e.message) || e) }));
     }
     return;
   }
 
-  /* ---- static files ---- */
-  let rel = decodeURIComponent(pathname);
+  /* ---- ملفات ساكنة ---- */
+  let rel = decodeURIComponent(url.pathname);
   if (rel === '/' || rel === '') rel = '/index.html';
+
+  /* ملفات الخادم لا تُقدَّم أبداً. */
+  const base = rel.replace(/^\/+/, '').toLowerCase();
+  if (base === 'api.js' || base === 'server.js' || base === 'config.local.js' || base.startsWith('.env')) {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('404 — not found');
+    return;
+  }
+
   const file = path.join(ROOT, path.normalize(rel).replace(/^(\.\.[\\/])+/, ''));
   if (!file.startsWith(ROOT)) { res.writeHead(403); res.end('forbidden'); return; }
 
   fs.readFile(file, (err, data) => {
-    if (err) {
-      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-      res.end('404 — not found');
-      return;
-    }
+    if (err) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('404 — not found'); return; }
     res.writeHead(200, {
       'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream',
       'Cache-Control': 'no-store'
@@ -137,5 +112,5 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log('URDRIP dev server  ->  http://localhost:' + PORT);
-  console.log('API proxy          ->  http://localhost:' + PORT + '/api');
+  console.log('API                ->  http://localhost:' + PORT + '/api');
 });
