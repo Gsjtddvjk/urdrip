@@ -30,17 +30,17 @@
   }
 
   function url(path, params) {
-    var q = '';
+    /* /products  ->  /api?r=products   (نقطة واحدة على Vercel: /api) */
+    var clean = String(path).replace(/^\/+/, '');
+    var q = 'r=' + encodeURIComponent(clean);
     if (params) {
-      var parts = [];
       for (var k in params) {
         if (!Object.prototype.hasOwnProperty.call(params, k)) continue;
         if (params[k] === undefined || params[k] === null || params[k] === '') continue;
-        parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(params[k]));
+        q += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
       }
-      if (parts.length) q = '?' + parts.join('&');
     }
-    return BASE + path + q;
+    return BASE + '?' + q;
   }
 
   function parse(text) {
@@ -163,18 +163,18 @@
     /* ---------- admin (authenticated) ---------- */
     db: function (opts) {
       opts = opts || {};
-      var path = '/db?table=' + encodeURIComponent(opts.table);
-      if (opts.action) path += '&action=' + encodeURIComponent(opts.action);
-      if (opts.id !== undefined && opts.id !== null && opts.id !== '') path += '&id=' + encodeURIComponent(opts.id);
-      if (opts.from) path += '&from=' + encodeURIComponent(opts.from);
-      if (opts.q) path += '&q=' + encodeURIComponent(opts.q);
-      if (opts.status) path += '&status=' + encodeURIComponent(opts.status);
-      if (opts.limit) path += '&limit=' + encodeURIComponent(opts.limit);
-      if (opts.offset) path += '&offset=' + encodeURIComponent(opts.offset);
-      return request(path, { method: opts.method || 'GET', token: opts.token, body: opts.body });
+      var params = { table: opts.table };
+      if (opts.action) params.action = opts.action;
+      if (opts.id !== undefined && opts.id !== null && opts.id !== '') params.id = opts.id;
+      if (opts.from) params.from = opts.from;
+      if (opts.q) params.q = opts.q;
+      if (opts.status) params.status = opts.status;
+      if (opts.limit) params.limit = opts.limit;
+      if (opts.offset) params.offset = opts.offset;
+      return request('/db', { method: opts.method || 'GET', token: opts.token, body: opts.body, params: params });
     },
     rpc: function (fn, body, token) {
-      return request('/db?fn=' + encodeURIComponent(fn), { method: 'POST', token: token, body: body || {} });
+      return request('/db', { method: 'POST', token: token, body: body || {}, params: { fn: fn } });
     }
   };
 })(window);

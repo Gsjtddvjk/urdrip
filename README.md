@@ -1,4 +1,4 @@
-# URDRIP DZ — متجر إلكتروني (Streetwear · Algeria)
+﻿# URDRIP DZ — متجر إلكتروني (Streetwear · Algeria)
 
 > ✅ **بنية مسطّحة:** كل الملفات في مجلد واحد — لا مجلدات فرعية.
 > ✅ **لا مفاتيح في الواجهة:** كل نداءات قاعدة البيانات تمر عبر `api.js` على الخادم.
@@ -26,7 +26,9 @@ npm run dev        # http://localhost:3000
 | `index.html` | الصفحة الرئيسية (ثيم Glow iOS) — المنتجات فقط |
 | `checkout.html` / `checkout.js` | صفحة الدفع (69 ولاية) |
 | `admin.html` / `admin.js` / `admin.css` | لوحة التحكم (Supabase Auth + ترتيب المنتجات) |
-| `api.js` | **الخادم**: كل مسارات `/api/*` في ملف واحد |
+| `api.js` | **الخادم**: منطق كل المسارات في ملف واحد |
+| `api/index.js` | نقطة الدخول على Vercel (`/api`) — ملف واحد |
+| `api/_secrets.js` | بيانات الاتصال الاحتياطية (Function، مصدره غير معلن) |
 | `api-client.js` | عميل الـ API في المتصفح (بدون مفاتيح) |
 | `config.js` | إعدادات عامة (بلا مفاتيح) |
 | `config.local.js` | احتياطي محلي فقط (لا يُنشر) |
@@ -44,13 +46,13 @@ npm run dev        # http://localhost:3000
 
 | المسار | الوظيفة |
 |--------|---------|
-| `GET /api/products[?id=]` | المنتجات النشطة (مرتّبة يدوياً إن كان العمود موجوداً) |
-| `GET /api/categories` | التصنيفات |
-| `POST /api/order` | إنشاء الطلب عبر `place_order()` RPC — الأسعار على السيرفر |
-| `POST /api/auth` | دخول الأدمن (Supabase Auth أو كلمة مرور من متغيّرات البيئة) |
-| `ALL /api/db?table=…` | عمليات اللوحة (محمية بـ RLS + `admin_users`) |
-| `POST /api/db?table=products&action=reorder` | **حفظ ترتيب المنتجات** |
-| `GET /api/health` | فحص الاتصال |
+| `GET /api?r=products[&id=]` | المنتجات النشطة (مرتّبة يدوياً إن كان العمود موجوداً) |
+| `GET /api?r=categories` | التصنيفات |
+| `POST /api?r=order` | إنشاء الطلب عبر `place_order()` RPC — الأسعار على السيرفر |
+| `POST /api?r=auth` | دخول الأدمن (Supabase Auth أو كلمة مرور من متغيّرات البيئة) |
+| `ALL /api?r=db&table=…` | عمليات اللوحة (محمية بـ RLS + `admin_users`) |
+| `POST /api?r=db&table=products&action=reorder` | **حفظ ترتيب المنتجات** |
+| `GET /api?r=health` | فحص الاتصال |
 
 ---
 

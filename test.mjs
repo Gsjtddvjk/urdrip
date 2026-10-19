@@ -35,7 +35,7 @@ async function newPage(mock, viewport) {
   const calls = [];
   page.on('request', r => {
     const u = new URL(r.url());
-    const isApi = u.pathname.startsWith('/api/');
+    const isApi = (u.pathname === '/api' || u.pathname.startsWith('/api/'));
     const isCdn = u.host.includes('cloudinary') || u.host.includes('googleapis') || u.host.includes('gstatic') || u.host.includes('jsdelivr');
     if (isApi || isCdn) {
       const rec = { method: r.method(), path: u.pathname + u.search, headers: r.headers(), body: r.postData(), api: isApi };
@@ -79,14 +79,14 @@ const json = (r, status, obj, extraHeaders) => r.respond({
     { id: 3, name: 'Sneaker', category: 'gang', price: 12000, stock: 3, image: 'https://res.cloudinary.com/qqftt7fm/image/upload/z.jpg', sizes: '40,41' }
   ];
   const t = await newPage((r, rec) => {
-    if (rec.path.startsWith('/api/products')) return json(r, 200, PRODUCTS);
-    if (rec.path.startsWith('/api/categories')) return json(r, 200, [{ id: 1, name: 'ستريت وير' }]);
+    if (rec.path.includes('r=products')) return json(r, 200, PRODUCTS);
+    if (rec.path.includes('r=categories')) return json(r, 200, [{ id: 1, name: 'ستريت وير' }]);
     return json(r, 200, []);
   });
   await t.page.goto(BASE + '/index.html', { waitUntil: 'networkidle0' });
   await t.page.waitForSelector('.product-card', { timeout: 5000 });
   ok((await t.page.$$('.product-card')).length === 3, 'storefront: 3 products rendered from the API');
-  ok(t.calls.some(c => c.path.startsWith('/api/products')), 'storefront: products fetched through the /api proxy');
+  ok(t.calls.some(c => c.path.includes('r=products')), 'storefront: products fetched through the /api proxy');
   const filters = await t.page.$$eval('#filters .filter-btn', b => b.map(x => x.textContent.trim()).join('|'));
   ok(filters.includes('الكل') && filters.includes('ستريت وير'), 'storefront: category filters built from the database', filters);
   /* no moving imagery: no infinite CSS animations on the page */
@@ -127,7 +127,7 @@ async function openCheckout(mock, viewport) {
   ok(await t.page.evaluate(() => !document.querySelector('.cart-item-img img')), 'checkout: javascript: image URL dropped');
   await fillCheckout(t.page); await t.page.click('#confirmBtn');
   await t.page.waitForSelector('#successOverlay.open', { timeout: 5000 });
-  const rpc = t.calls.filter(c => c.path.startsWith('/api/order')); const b = JSON.parse(rpc[0].body);
+  const rpc = t.calls.filter(c => c.path.includes('r=order')); const b = JSON.parse(rpc[0].body);
   ok(rpc.length === 1, 'checkout: exactly one order call');
   ok(!('total' in b) && !('p_total' in b) && b.p_items.every(i => Object.keys(i).sort().join() === 'id,qty,size'), 'checkout: no price/total sent to server (server computes)', rpc[0].body);
   ok(/^[0-9a-f-]{36}$/.test(b.p_idempotency_key), 'checkout: idempotency key present');
@@ -140,13 +140,13 @@ async function openCheckout(mock, viewport) {
 { // client validation: no request
   const t = await openCheckout((r) => json(r, 200, {}));
   await fillCheckout(t.page, '123'); await t.page.click('#confirmBtn');
-  ok(!t.calls.some(c => c.path.startsWith('/api/order')) && (await t.page.$eval('#formError', e => e.innerText)).includes('رقم الهاتف'), 'checkout: invalid phone blocked client-side with message');
+  ok(!t.calls.some(c => c.path.includes('r=order')) && (await t.page.$eval('#formError', e => e.innerText)).includes('رقم الهاتف'), 'checkout: invalid phone blocked client-side with message');
   await t.page.close();
 }
 { // business error: single call, Arabic message, cart kept
   const t = await openCheckout((r) => json(r, 400, { code: 'P0001', message: 'out_of_stock' }));
   await fillCheckout(t.page); await t.page.click('#confirmBtn'); await t.page.waitForFunction(() => document.getElementById('formError') && document.getElementById('formError').style.display === 'block');
-  ok(t.calls.filter(c => c.path.startsWith('/api/order')).length === 1, 'checkout: business error is NOT retried');
+  ok(t.calls.filter(c => c.path.includes('r=order')).length === 1, 'checkout: business error is NOT retried');
   ok((await t.page.$eval('#formError', e => e.innerText)).includes('نفدت'), 'checkout: out_of_stock shown in Arabic (no internals leaked)');
   ok(await t.page.evaluate(() => localStorage.getItem('urdrip_cart') !== null && !document.getElementById('confirmBtn').disabled), 'checkout: cart kept + button re-enabled');
   await t.page.close();
@@ -155,11 +155,11 @@ async function openCheckout(mock, viewport) {
   let n = 0; const t = await openCheckout((r) => { n++; if (n <= 3) return r.abort('failed'); json(r, 200, { order_id: 9, status: 'pending', subtotal: 9000, shipping: 700, total: 9700, replayed: true }); });
   await fillCheckout(t.page); await t.page.click('#confirmBtn');
   await t.page.waitForFunction(() => document.getElementById('formError') && document.getElementById('formError').style.display === 'block', { timeout: 20000 });
-  const keys1 = t.calls.filter(c => c.path.startsWith('/api/order')).map(c => JSON.parse(c.body).p_idempotency_key);
+  const keys1 = t.calls.filter(c => c.path.includes('r=order')).map(c => JSON.parse(c.body).p_idempotency_key);
   ok(keys1.length === 3 && new Set(keys1).size === 1, 'checkout: 3 automatic retries all reuse the SAME idempotency key', keys1.length + ' calls');
   ok(await t.page.evaluate(() => localStorage.getItem('urdrip_cart') !== null), 'checkout: network failure does not lose cart/order');
   await t.page.click('#confirmBtn'); await t.page.waitForSelector('#successOverlay.open', { timeout: 10000 });
-  const keys2 = t.calls.filter(c => c.path.startsWith('/api/order')).map(c => JSON.parse(c.body).p_idempotency_key);
+  const keys2 = t.calls.filter(c => c.path.includes('r=order')).map(c => JSON.parse(c.body).p_idempotency_key);
   ok(new Set(keys2).size === 1, 'checkout: manual retry after failure still same key (no duplicate order possible)');
   await t.page.close();
 }
@@ -167,7 +167,7 @@ async function openCheckout(mock, viewport) {
   const t = await openCheckout(async (r) => { await new Promise(s => setTimeout(s, 600)); json(r, 200, { order_id: 3, status: 'pending', subtotal: 9000, shipping: 700, total: 9700, replayed: false }); });
   await fillCheckout(t.page); await t.page.evaluate(() => { const b = document.getElementById('confirmBtn'); b.click(); b.click(); b.click(); });
   await t.page.waitForSelector('#successOverlay.open', { timeout: 8000 });
-  ok(t.calls.filter(c => c.path.startsWith('/api/order')).length === 1, 'checkout: triple-click sends ONE request');
+  ok(t.calls.filter(c => c.path.includes('r=order')).length === 1, 'checkout: triple-click sends ONE request');
   await t.page.close();
 }
 
@@ -177,7 +177,7 @@ const ORDERS = [{ id: 5, customer: XSS, phone: '0550123456', wilaya: 'Alger', co
 function adminMock({ admin = true } = {}) {
   return (r, rec) => {
     const p = rec.path;
-    if (p.startsWith('/api/auth')) return json(r, 200, SESSION);
+    if (p.includes('r=auth')) return json(r, 200, SESSION);
     if (p.includes('fn=admin_dashboard_stats')) return admin ? json(r, 200, { products_total: 4, products_active: 3, products_out_of_stock: 1, orders_total: 1, orders_last_24h: 1, orders_by_status: { pending: 1 }, revenue_products: 0 }) : json(r, 403, { message: 'forbidden', code: '42501' });
     if (rec.method === 'PATCH' && p.includes('table=orders')) return json(r, 200, [{ ...ORDERS[0], status: 'confirmed' }]);
     if (p.includes('table=orders')) return r.respond({ status: 200, contentType: 'application/json', headers: { 'access-control-expose-headers': 'Content-Range', 'content-range': '0-0/1' }, body: JSON.stringify(ORDERS) });
@@ -188,7 +188,7 @@ function adminMock({ admin = true } = {}) {
   const t = await newPage(adminMock());
   await t.page.goto(BASE + '/admin.html', { waitUntil: 'networkidle0' });
   ok(await t.page.evaluate(() => getComputedStyle(document.getElementById('adminContent')).display === 'none' && getComputedStyle(document.getElementById('lockScreen')).display !== 'none'), 'admin: locked by default');
-  ok(!t.calls.some(c => c.path.startsWith('/api/db')), 'admin: ZERO data requests before login');
+  ok(!t.calls.some(c => c.path.includes('r=db')), 'admin: ZERO data requests before login');
   ok(!(await t.page.content()).includes('admin_pass') && !t.calls.some(c => c.path.includes('settings')), 'admin: no password/settings access from page');
   await t.page.type('#lockEmail', 'boss@shop.dz'); await t.page.type('#lockPass', 'whatever'); await t.page.click('#loginBtn');
   await t.page.waitForFunction(() => document.getElementById('adminContent').style.display !== 'none', { timeout: 8000 });
@@ -196,7 +196,7 @@ function adminMock({ admin = true } = {}) {
   await t.page.waitForSelector('.order-card', { timeout: 5000 });
   ok(await t.page.evaluate(() => window.__xss === undefined), 'admin: XSS payloads in customer name/note/items do NOT execute');
   ok((await t.page.$eval('.order-card', e => e.innerText)).includes('<img src=x'), 'admin: payload rendered as inert text');
-  const dataCalls = t.calls.filter(c => c.path.startsWith('/api/db'));
+  const dataCalls = t.calls.filter(c => c.path.includes('r=db'));
   ok(dataCalls.length > 0 && dataCalls.every(c => c.headers.authorization === 'Bearer USER-JWT-TEST'), 'admin: every data call uses the signed-in user token (no service key)');
   ok(await t.page.evaluate(() => Object.keys(localStorage).every(k => !/order|admin|phone|customer/i.test(k + localStorage.getItem(k)))), 'admin: no orders/PII in localStorage');
   const btns = await t.page.$$eval('[data-act="order-status"]', b => b.map(x => x.dataset.to).sort().join());

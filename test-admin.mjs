@@ -1,6 +1,6 @@
-// Checks the admin reorder panel: renders the list, arrows move items.
+﻿// Checks the admin reorder panel: renders the list, arrows move items.
 import puppeteer from 'puppeteer';
-import fs from 'fs'; import path from 'path';
+import fs from 'fs'; import os from 'os'; import path from 'path';
 import { fileURLToPath } from 'url';
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
@@ -25,7 +25,7 @@ page.on('response', async r => {
 await page.setRequestInterception(true);
 page.on('request', r => {
   const u = new URL(r.url());
-  if (u.pathname.startsWith('/api/db') && u.searchParams.get('fn') === 'admin_dashboard_stats') {
+  if (u.searchParams.get('fn') === 'admin_dashboard_stats') {
     return r.respond({
       status: 200, contentType: 'application/json',
       body: JSON.stringify({ products_total: 22, products_active: 22, products_out_of_stock: 0, orders_total: 0, orders_last_24h: 0, orders_by_status: {}, revenue_products: 0 })
@@ -76,7 +76,7 @@ await new Promise(r => setTimeout(r, 4000));
 const msg = await page.$eval('#reorderMsg', e => e.style.display !== 'none' ? e.textContent : '');
 ok(/sort_order|service_role/.test(msg), 'reorder: clear message when the column/key is missing', msg);
 
-await page.screenshot({ path: path.join(ROOT, 'admin-reorder.png') });
+await page.screenshot({ path: path.join(os.tmpdir(), 'urdrip-admin-reorder.png') });
 await browser.close();
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

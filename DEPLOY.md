@@ -87,11 +87,18 @@ select id from auth.users where email = 'YOUR_ADMIN_EMAIL';
 يوزّع `vercel.json` المسارات:
 
 ```
-/api/*        -> api.js        (Serverless Function)
-/api.js       -> 404.html      (محجوب عن الزوار)
-/api.js الأصول -> 404
-كل ما تبقّى   -> من الـ CDN
+/api?r=...    -> api/index.js   (Serverless Function — نقطة واحدة)
+/api.js       -> 404.html       (محجوب عن الزوار)
+باقي الملفات  -> من الـ CDN
 ```
+
+> **لماذا مجلد `api/`؟** لأن Vercel ينشئ الدوال (Functions) تلقائياً من أي ملف
+> داخل `/api`. مجلد واحد فيه ملفان فقط — بقية المشروع مسطّح تماماً في الجذر.
+> الملف `api/_secrets.js` يُنشر كـ Function (لا كملف ثابت) فلا يُقرأ مصدره،
+> بينما `api.js` في الجذر لا يحتوي أي مفتاح.
+
+> ⚠️ **لا تستخدم `builds` في vercel.json** — يستبدل البناء الافتراضي فلا
+> تُنسخ الملفات الساكنة ويصبح الموقع 404.
 
 ---
 

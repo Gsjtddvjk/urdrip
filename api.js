@@ -14,13 +14,9 @@
  * يعمل محلياً (server.js) وعلى Vercel (Serverless Function).
  * ========================================================================== */
 import crypto from 'crypto';
+import { FALLBACK } from './api/_secrets.js';
 
 /* ---------- 1. بيانات الاتصال ---------- */
-const FALLBACK = {
-  SUPABASE_URL: 'https://vmsrldkihpxkfbgvswnf.supabase.co',
-  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpczMiOiJzdXBhYmFzZSIsInJlZiI6InZtc3JsZGtpaHB4a2ZiZ3Zzd25mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1MjM5MDIsImV4cCI6MjA5OTA5OTkwMn0.byh2My9XzGjLJjfEZw-EyGqPeCDefYPgTgsQavC9ALE'
-};
-
 function creds() {
   const url = process.env.SUPABASE_URL || FALLBACK.SUPABASE_URL;
   const key = process.env.SUPABASE_ANON_KEY || FALLBACK.SUPABASE_ANON_KEY;
@@ -675,9 +671,17 @@ const ROUTES = {
   '/api/health': health
 };
 
+/* يحدّد المسار من (?r=products) أو من المسار الكامل (/api/products). */
+function resolveRoute(req) {
+  const q = req.query || {};
+  if (q.r) return '/api/' + String(q.r).replace(/^\/+/, '').replace(/\/+$/, '');
+  let p = (req.url || '').split('?')[0];
+  if (p.length > 1) p = p.replace(/\/+$/, '');
+  return p;
+}
+
 export default async function handler(req, res) {
-  let path = (req.url || '').split('?')[0];
-  if (path.length > 1) path = path.replace(/\/+$/, '');
+  const path = resolveRoute(req);
   const fn = ROUTES[path];
   if (!fn) return fail(res, 404, 'not_found');
   try {

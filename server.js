@@ -71,7 +71,7 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
 
   /* ---- /api ---- */
-  if (url.pathname.startsWith('/api/')) {
+  if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
     try {
       const query = {};
       for (const [k, v] of url.searchParams) query[k] = v;
