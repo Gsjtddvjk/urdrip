@@ -1,0 +1,15 @@
+{
+  "name": "urdrip-dz",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "URDRIP DZ — streetwear store (HTML/CSS/JS + Supabase via a server-side proxy)",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "test": "node tests/e2e.mjs"
+  },
+  "devDependencies": {
+    "puppeteer": "^24.43.1"
+  }
+}

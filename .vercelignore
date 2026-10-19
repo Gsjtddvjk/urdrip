@@ -1,0 +1,16 @@
+node_modules
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+.vercel
+tests
+docs
+legacy
+*.log
+*.png
+!logo*.png
+!cat-*.png
+!mascot.png
+!IMG_3254.PNG

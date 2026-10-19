@@ -1,226 +1,125 @@
-# URDRIP DZ — وصف المشروع الكامل
+# URDRIP DZ — متجر إلكتروني (Streetwear · Algeria)
 
-## نظرة عامة
-
-متجر إلكتروني streetwear إلكتروني بالكامل باللغة العربية مع واجهة داكنة وتأثيرات زجاجية (glassmorphism). مبني بـ HTML/CSS/JS خالص بدون أي إطار عمل.
+> ✅ **بنية جديدة (v10):** كل الاتصال بقاعدة البيانات يمر عبر **بروكسي على الخادم** (`/api/*`).
+> لا يوجد أي مفتاح Supabase في كود الواجهة (frontend) — المفتاح موجود على السيرفر فقط.
+> الثيم: **Glow iOS** — أبيض، شفاف (glassmorphism)، إضاءة ناعمة، بدون أي حركة في الخلفية.
 
 ---
 
-## البنية التحتية
+## 1. البنية
 
-### Supabase (قاعدة البيانات)
-- **المشروع:** `vmsrldkihpxkfbgvswnf.supabase.co`
-- **Anon Key:** `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtc3JsZGtpaHB4a2ZiZ3Zzd25mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1MjM5MDIsImV4cCI6MjA5OTA5OTkwMn0.byh2My9XzGjLJjfEZw-EyGqPeCDefYPgTgsQavC9ALE`
-- **Service Role Key:** `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtc3JsZGtpaHB4a2ZiZ3Zzd25mIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MzUyMzkwMiwiZXhwIjoyMDk5MDk5OTAyfQ.gqfcrzQ5H2m14CoiaNG2Gfmd6ZB6yzlS4X1oiFJFy_o`
-
-### Cloudinary (رفع الصور)
-- **Cloud Name:** `qqftt7fm`
-- **Upload Preset:** `gg-urdrip` (unsigned)
-- **URL:** `https://api.cloudinary.com/v1_1/qqftt7fm/image/upload`
-- مجاني 25GB + CDN سريع + تحويل تلقائي إلى WebP
-
-### Supabase Schema (v8)
-```sql
--- الجداول:
-categories    -- التصنيفات (3 فقط: clothes, accessories, gang)
-products      -- المنتجات (صور base64, أسعار integer, stock)
-orders        -- الطلبات
-settings      -- إعدادات المشرف (كلمة المرور)
-
--- الملفات:
-SUPABASE_SCHEMA.sql  -- السكيما الكاملة (يجب تشغيلها واحد واحد)
-MIGRATE_v7.sql       -- ترحيل آمن بدون حذف بيانات
-FIX_SETTINGS.sql     -- إنشاء جدول settings فقط
 ```
-
----
-
-## الملفات
+الزائر ──► index.html / checkout.html / admin.html
+                 │  fetch('/api/...')          ← بدون أي مفتاح
+                 ▼
+        Vercel Serverless (api/*.js)  ←  Supabase URL + KEY (متغيرات بيئة)
+                 │  fetch Supabase REST/RPC
+                 ▼
+            Supabase (vmsrldkihpxkfbgvswnf)
+```
 
 | الملف | الوظيفة |
 |-------|---------|
-| `index.html` | الصفحة الرئيسية: hero + كروت التصنيفات + drop card + من نحن + الإحصائيات |
-| `collection.html` | صفحة التجميع: شبكة المنتجات + فلتر + modal |
-| `checkout.html` | صفحة الدفع: نموذج الزبون + ملخص السلة + إرسال الطلب |
-| `admin.html` | لوحة التحكم: إدارة المنتجات + الطلبات + كلمة المرور |
-| `admin.js` | منطق لوحة التحكم |
-| `admin.css` | تصاميم لوحة التحكم |
-| `SUPABASE_SCHEMA.sql` | سكيما قاعدة البيانات الكاملة |
-| `MIGRATE_v7.sql` | ترحيل آمن من v6 إلى v8 |
-| `FIX_SETTINGS.sql` | إنشاء جدول settings لكلمة المرور |
-| `FIX_ORDERS.sql` | إصلاح جدول الطلبات |
+| `api/_lib.js` | أدوات مشتركة: قراءة الـ env، جلسات الأدمن الموقّعة، نداء Supabase |
+| `api/_config.js` | **بيانات احتياطية على السيرفر فقط** (لا تُنشر كصفحة) |
+| `api/products.js` | `GET /api/products` — قائمة المنتجات (+ `?id=` لمنتج واحد) |
+| `api/categories.js` | `GET /api/categories` — التصنيفات |
+| `api/order.js` | `POST /api/order` — إنشاء الطلب عبر `place_order()` RPC |
+| `api/auth.js` | `POST /api/auth` — دخول الأدمن (Supabase Auth أو كلمة مرور على السيرفر) |
+| `api/db.js` | `/api/db` — عمليات لوحة التحكم (RLS + allowlist `admin_users`) |
+| `api/health.js` | `GET /api/health` — فحص الاتصال بقاعدة البيانات |
+| `api-client.js` | عميل الـ API في المتصفح (بدون مفاتيح) |
+| `server.js` | سيرفر تطوير محلي يشغّل نفس الـ API بدون Vercel |
 
 ---
 
-## الصفحة الرئيسية (index.html)
+## 2. التشغيل محلياً
 
-### الأقسام
-1. **Loader** — شاشة تحميل مع `loader-please-wait.png`
-2. **Hero** — عنوان + وصف + زر شراء + زر استكشاف
-3. **كروت التصنيفات** — 3 كروت (ستريت وير، إكسسوارات، سنيكرز) مع صور PNG
-4. **Drop Card** — إشعار المنتج الجديد مع عداد تنازلي
-5. **من نحن** — وصف البراند + إحصائيات
-6. **Modal** — تفاصيل المنتج عند النقر
-7. **Cart Toast** — إشعار عند الإضافة للسلة
-8. **Footer** — معلومات التواصل + Instagram
+```bash
+npm install          # (اختياري — للأدوات فقط)
+copy .env.example .env
+npm run dev          # http://localhost:3000
+```
 
-### المميزات
-- لا يوجد قسم منتجات (تم حذفه بناءً على طلب المستخدم)
-- التصنيفات توجه إلى `collection.html?cat=clothes`
-- Dark theme مع تأثيرات نارية (fire/red glassmorphism)
-- متجاوب مع الجوال
+> ⚠️ **لا تفتح `index.html` مباشرة من المجلد (نقر مزدوج).** المتصفح لن يجد `/api`.
+> استخدم دائماً `npm run dev` أو `npx vercel dev`.
 
 ---
 
-## صفحة التجميع (collection.html)
+## 3. متغيّرات البيئة (إلزامية على Vercel)
 
-### المميزات
-- **شبكة منتجات** — عرض جميع المنتجات من Supabase
-- **فلتر بالتصنيفات** — زر "الكل" + 3 أزرار تصنيفي
-- **Modal المنتج** — صور متعددة + اختيار المقاس + إضافة للسلة
-- **Loading Screen** — شاشة تحميل مع `loader-please-wait.png`
-- **Cache** — تخزين المنتجات في `localStorage` لمدة ساعة
-- **Smart Image Loading** — bulk query يجلب `image` فقط، `images` تُحمّل عند فتح Modal
-- **Fire Theme** — خلفية نارية مرئية على الجوال
+Vercel → Project → Settings → Environment Variables:
 
-### Filtering
-- يعرض فقط المنتجات التي تطابق `category` المحدد
-- `display:none` toggle بدلاً من rebuild DOM (يمنع إعادة تحميل الصفحة)
+| المتغيّر | مطلوب | الوصف |
+|----------|-------|-------|
+| `SUPABASE_URL` | نعم | `https://vmsrldkihpxkfbgvswnf.supabase.co` |
+| `SUPABASE_ANON_KEY` | نعم | مفتاح anon (من Supabase → Settings → API) |
+| `SUPABASE_SERVICE_ROLE_KEY` | اختياري | مطلوب فقط للدخول بكلمة مرور (rotate القديم أولاً!) |
+| `ADMIN_PASSWORD` | اختياري | كلمة مرور الأدمن (تُقارَن على السيرفر) |
+| `SESSION_SECRET` | نعم | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 
----
-
-## صفحة الدفع (checkout.html)
-
-### نموذج الزبون
-- الاسم الكامل
-- رقم الهاتف
-- الولاية (58 ولاية جزائرية)
-- البلدية (اختياري)
-- طريقة التوصيل (منزل +700 دج / مكتب +600 دج)
-- ملاحظات (اختياري)
-
-### ملخص الطلب
-- عرض المنتجات من السلة
-- سعر المنتج + سعر التوصيل = المجموع الكلي
-- **لا يرسل صور في الطلب** (يمنع Timeout)
-
-### الإرسال
-- يحفظ الطلب في Supabase
-- يعرض رسالة نجاح
-- يمسح السلة بعد النجاح
+> `api/_config.js` يحتوي على قيم احتياطية تعمل مباشرة، لكن **الأفضل** ضبطها في Vercel
+> وتدوير مفتاح `service_role` القديم (كان منشوراً في الإصدار القديم).
 
 ---
 
-## لوحة التحكم (admin.html)
+## 4. الثيم — Glow iOS
 
-### كلمة المرور
-- **الافتراضي:** `urdrip2026`
-- **التخزين:** Supabase جدول `settings`
-- **المزامنة:** تلقائي عبر الأجهزة
-- **التغيير:** من صفحة الإعدادات في لوحة التحكم
-
-### إدارة المنتجات
-- إضافة منتج جديد (اسم، تصنيف، سعر، ألوان، صور Cloudinary، badge، وصف، stock)
-- تعديل منتج موجود
-- حذف منتج مع تأكيد
-- الصور تُرفع على Cloudinary تلقائياً وتحفظ الرابط فقط
-
-### إدارة الطلبات
-- عرض جميع الطلبات
-- تغيير الحالة (pending → confirmed → shipped → delivered / cancelled)
-- حذف طلب
-
-### إدارة التصنيفات
-- إضافة/تعديل/حذف التصنيفات
-- كل تصنيف له: name, description, sort_order, active
-
-### الإعدادات
-- تغيير كلمة المرور (تُحفظ في Supabase)
-
-### إحصائيات الإيرادات
-- مجموع مبيعات المنتجات فقط (بدون تكلفة التوصيل)
+- خلفية بيضاء متدرّجة مع **توهّجات ضوئية ثابتة** (أزرق/وردي/بنفسجي بشفافية عالية).
+- أسطح **زجاجية** (`backdrop-filter: blur + saturate`) مع حدود بيضاء وحواف ناعمة.
+- صور المنتجات بالأبيض والأسود (`grayscale`) وتتحوّل للون عند المرور.
+- **بدون أي صورة متحركة أو أنيميشن متكرر** في الخلفية.
+- خطوط: `Inter` فقط + خط النظام للمن monospace (طلب شبكة أقل = تحميل أسرع).
+- دعم `prefers-reduced-motion` + تخطيط متجاوب للجوال.
 
 ---
 
-## التقنيات المستخدمة
+## 5. الأداء
 
-| التقنية | الاستخدام |
-|---------|-----------|
-| HTML5 | بنية الصفحات |
-| CSS3 | التصميم + التأثيرات |
-| Vanilla JS | المنطق البرمجي |
-| Supabase | قاعدة البيانات + API |
-| Cloudinary | رفع الصور + CDN |
-| localStorage | السلة + التخزين المؤقت |
-| Gilroy ExtraBold | الخط الرئيسي |
-| DM Serif Display | عناوين مائلة |
-| Outfit | خط صفحة الدفع |
+| التقنية | الأثر |
+|---------|-------|
+| تخزين محلي `localStorage` للمنتجات (24 ساعة) | فتح فوري عند العودة |
+| `Cache-Control: s-maxage` على `/api/products` و `/api/categories` | رد من الـ edge بدون لمس القاعدة |
+| Cloudinary `q_auto,f_auto,w_N` | صور أصغر/formats محسّنة تلقائياً |
+| صورة Modal تظهر فوراً من بيانات القائمة | لا انتظار |
+| طلب شبكة واحد للخطوط + `preconnect` | وقت رسم أول (FCP) أقصر |
 
 ---
 
-## التصميم
+## 6. الأمان
 
-### الألوان
-- **الخلفية:** `#050505` → `#111111` (تدرج داكن)
-- **اللهب الرئيسي:** `#ff2d2d` (أحمر)
-- **اللهب الثانوي:** `#ff6b35` (برتقالي)
-- **النص:** `#ffffff` → `rgba(255,255,255,.7)` (أبيض شفاف)
-
-### التأثيرات
-- Glassmorphism: `backdrop-filter: blur()`
-- تدرجات نارية على الأزرار والعناصر النشطة
-- ظلال متوهجة (glow)
-- نجوم متحركة على الخلفية (canvas)
-- أشرطة ضوئية متحركة (aurora)
-- كرات ضوء متحركة (orbs)
-
-### الخطوط
-- **Gilroy ExtraBold:** كل النصوص
-- **DM Serif Display:** عناوين "من نحن" المائلة
-- **Outfit:** صفحة الدفع
+- ✅ لا مفتاح Supabase في أي ملف يُقدَّم للمتصفح (اختبار تلقائي في `tests/e2e.mjs`).
+- ✅ الطلبات تُسجَّل عبر `place_order()` RPC — الأسعار تُحسب على السيرفر، والمتصفح لا يرسل أسعاراً.
+- ✅ مفتاح idempotency يمنع تكرار الطلب عند إعادة المحاولة.
+- ✅ RLS + `admin_users` — الطلبات والإعدادات غير مقروءة إلا للمشرف.
+- ✅ `orders_guard` يمنع تعديل بيانات الزبون/المبلغ بعد الإنشاء ويقيّد انتقالات الحالة.
+- ✅ حد 5 طلبات/ساعة/رقم هاتف (rate limit على السيرفر).
+- ✅ CSP صارم + `X-Frame-Options: DENY` + `no-store` على صفحات الأدمن.
 
 ---
 
-## النشر على Vercel
+## 7. النشر على Vercel
 
-### الخطوات
-1. ارفع الكود على GitHub
-2. اربط GitHub بـ Vercel
-3. اختر المجلد الجذر (`urdrip2`)
-4. Build Command: `Leave empty` (ملف statik)
-5. Output Directory: `.`
-6. Deploy
-
-### متطلبات ما بعد النشر
-- تشغيل SQL schema على Supabase (واحد واحد)
-- اختبار جميع الصفحات
-- إضافة منتجات اختبارية من لوحة التحكم
+1. ارفع المجلد إلى GitHub.
+2. Vercel → Import → Framework: **Other** → Build Command: *(فارغ)* → Output: *(فارغ)*.
+3. أضف متغيّرات البيئة (القسم 3).
+4. Deploy — مجلد `api/` يُنشر تلقائياً كـ Serverless Functions.
 
 ---
 
-## التحسينات المُنجزة
+## 8. الاختبارات
 
-- ✅ حذف قسم المنتجات من الصفحة الرئيسية
-- ✅ حذف "dz" و إيموجي اللهب من الشعار
-- ✅ إضافة خط DM Serif Display لـ collection.html
-- ✅ إضافة خط Outfit لـ checkout.html
-- ✅ حماية zoom على جميع الصفحات
-- ✅ شاشة تحميل على index.html و collection.html
-- ✅ تحميل ذكي للصور (thumbnail في bulk، full في modal)
-- ✅ فلتر display:none يمنع إعادة تحميل الصفحة
-- ✅ كلمة مرور موحدة في Supabase (تتعرف عبر الأجهزة)
-- ✅ timeout تمزيد من 2000ms إلى 8000ms
-- ✅ RLS policies مع `WITH CHECK (true)` للإدراج
-- ✅ Fire theme ظاهر على الجوال
-- ✅ صور base64 → Cloudinary URLs (أسرع 50%+)
+```bash
+npm test             # 35 اختبار متصفح (Puppeteer) — Supabase مُحاكى
+```
+
+لقطات الشاشة تُحفظ في `%TEMP%/urdrip-shots` (خارج المشروع).
 
 ---
 
-## ملاحظات مهمة
+## 9. ملاحظات
 
-1. **لا تغير Anon Key أو Service Role Key** بدون تحديث جميع الملفات
-2. **لا تغير Cloudinary Cloud Name أو Upload Preset** بدون تحديث admin.js
-3. **SQL schema يجب تشغيله واحد واحد** في Supabase SQL Editor
-4. **كلمة مرور افتراضي:** `urdrip2026`
-5. **Instagram:** `@urdrip_dz`
-6. **التصنيفات محدودة بـ 3 فقط:** clothes, accessories, gang
+- التصنيفات: `clothes` (ستريت وير) · `accessories` (إكسسوارات) · `gang` (سنيكرز).
+- التوصيل: 69 ولاية — للباب 700 دج / المكتب 600 دج.
+- Instagram: `@urdrip_dz`
+- `supabase/migrations/` يوثّق مخطط القاعدة الحالي — لا تشغّله على قاعدة مُطبَّقة.

@@ -2,6 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
+<meta name="robots" content="noindex,nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#070707">
 <title>URDRIP — لوحة التحكم</title>
@@ -17,10 +18,16 @@
   <div class="lock-box">
     <img src="logo.svg" alt="URDRIP" width="80" height="80" style="border-radius:16px;margin-bottom:20px">
     <h2 style="margin-bottom:8px;font-family:'Space Grotesk',sans-serif">URDRIP DZ</h2>
-    <p style="color:#9090b0;margin-bottom:28px;font-size:15px">أدخل كلمة المرور للدخول</p>
-    <input type="password" id="lockPass" placeholder="كلمة المرور" autocomplete="off" style="width:100%;padding:16px 18px;border-radius:14px;background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.1);color:#f0f0f5;font-size:16px;margin-bottom:14px;outline:none;text-align:center;min-height:56px;font-family:inherit;transition:border-color .3s" inputmode="text">
-    <p id="lockErr" style="color:#ff2d2d;font-size:14px;display:none;margin-bottom:14px">كلمة المرور خاطئة</p>
-    <button onclick="checkPass()" style="width:100%;padding:16px;border-radius:14px;background:linear-gradient(135deg,#ff2d2d,#ff4500);color:#fff;font-size:17px;font-weight:700;border:none;cursor:pointer;min-height:56px;font-family:inherit;box-shadow:0 6px 24px rgba(255,45,45,.3);transition:all .25s">دخول</button>
+    <p style="color:#9090b0;margin-bottom:28px;font-size:15px">تسجيل دخول المشرف</p>
+    <input type="email" id="lockEmail" placeholder="البريد الإلكتروني" autocomplete="username" dir="ltr" style="width:100%;padding:16px 18px;border-radius:14px;background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.1);color:#f0f0f5;font-size:16px;margin-bottom:14px;font-family:inherit;box-sizing:border-box">
+    <input type="password" id="lockPass" placeholder="كلمة المرور" autocomplete="current-password" dir="ltr" style="width:100%;padding:16px 18px;border-radius:14px;background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.1);color:#f0f0f5;font-size:16px;margin-bottom:14px;font-family:inherit;box-sizing:border-box">
+    <p id="lockErr" role="alert" style="color:#ff6b6b;font-size:14px;display:none;margin-bottom:14px"></p>
+    <button type="button" id="loginBtn" style="width:100%;padding:16px;border-radius:14px;background:linear-gradient(135deg,#ff2d2d,#ff4500);color:#fff;font-size:17px;font-weight:700;border:none;cursor:pointer;min-height:56px;font-family:inherit">دخول</button>
+    <p style="color:#6b6b85;font-size:11.5px;line-height:1.7;margin-top:18px;text-align:center;border-top:1px solid rgba(255,255,255,.08);padding-top:16px">
+      الدخول يتم من الخادم عبر <code>/api/auth</code> — لا توجد كلمة مرور داخل هذه الصفحة.<br>
+      الحساب يجب أن يكون مدرجاً في <code>public.admin_users</code>، أو أن يكون
+      <code>ADMIN_PASSWORD</code> + <code>SUPABASE_SERVICE_ROLE_KEY</code> مضبوطَين في متغيّرات البيئة.
+    </p>
   </div>
 </div>
 
@@ -60,6 +67,7 @@
       </a>
     </nav>
     <div class="sidebar-footer">
+      <a href="#" class="sidebar-link" data-logout>تسجيل الخروج</a>
       <a href="index.html" target="_blank" class="sidebar-link">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         عرض الموقع
@@ -92,6 +100,11 @@
           <div class="stat-icon revenue"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
           <div class="stat-info"><h3 id="statRevenue">0 دج</h3><p>الإيرادات</p></div>
         </div>
+      </div>
+      <div id="statusStats" class="stats-grid" style="margin-top:16px"></div>
+      <div class="recent-section">
+        <h2>آخر الطلبات</h2>
+        <div class="recent-products" id="recentActivity"></div>
       </div>
       <div class="recent-section">
         <h2>أحدث المنتجات</h2>
@@ -281,9 +294,15 @@
     <!-- ORDERS -->
     <section class="admin-section" id="orders">
       <div class="section-header"><h2>الطلبات</h2></div>
-      <div class="orders-list" id="ordersList">
-        <div class="empty-state"><p>لا توجد طلبات بعد</p></div>
+      <div class="products-search" style="display:flex;gap:10px;flex-wrap:wrap">
+        <input type="search" id="orderSearch" placeholder="بحث بالاسم أو الهاتف أو رقم الطلب" style="flex:1;min-width:200px" maxlength="40">
+        <select id="orderStatusFilter" aria-label="تصفية حسب الحالة" style="min-width:160px">
+          <option value="">كل الحالات</option><option value="pending">قيد انتظار التأكيد</option><option value="confirmed">مؤكد</option>
+          <option value="shipped">تم الشحن</option><option value="delivered">تم التوصيل</option><option value="cancelled">ملغي</option>
+        </select>
       </div>
+      <div class="orders-list" id="ordersList"><div class="empty-state"><p>جاري التحميل...</p></div></div>
+      <div id="ordersPager" style="text-align:center;margin:18px 0"></div>
     </section>
 
     <!-- SETTINGS -->
@@ -297,13 +316,10 @@
         </div>
       </div>
       <div class="settings-form glass" style="margin-top:24px">
-        <h3 style="margin-bottom:16px;font-size:16px;font-weight:700">تغيير كلمة المرور</h3>
-        <div class="form-group"><label>كلمة المرور الحالية</label><input type="password" id="currentPass" placeholder="أدخل كلمة المرور الحالية"></div>
-        <div class="form-group"><label>كلمة المرور الجديدة</label><input type="password" id="newPass" placeholder="أدخل كلمة المرور الجديدة"></div>
-        <div class="form-group"><label>تأكيد كلمة المرور</label><input type="password" id="confirmPass" placeholder="أعد إدخال كلمة المرور الجديدة"></div>
-        <div class="form-actions">
-          <button type="button" class="btn-save" id="changePassBtn">تغيير كلمة المرور</button>
-        </div>
+        <h3 style="margin-bottom:12px;font-size:16px;font-weight:700">الحساب</h3>
+        <p style="margin-bottom:16px;font-size:14px">مسجّل الدخول: <strong id="accountEmail" dir="ltr"></strong></p>
+        <p style="margin-bottom:16px;font-size:13px;opacity:.7">تغيير كلمة المرور يتم من خلال Supabase Auth (لوحة Supabase → Authentication → Users).</p>
+        <div class="form-actions"><button type="button" class="btn-cancel" data-logout>تسجيل الخروج</button></div>
       </div>
     </section>
   </main>
@@ -324,27 +340,8 @@
   </div>
 </div>
 
-<!-- SUPABASE CONFIG — hardcoded in admin.js -->
-
-<script>
-var _adminPass = 'urdrip2026';
-fetch('https://vmsrldkihpxkfbgvswnf.supabase.co/rest/v1/settings?key=eq.admin_pass&select=value', {
-  headers: { apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtc3JsZGtpaHB4a2ZiZ3Zzd25mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1MjM5MDIsImV4cCI6MjA5OTA5OTkwMn0.byh2My9XzGjLJjfEZw-EyGqPeCDefYPgTgsQavC9ALE', Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtc3JsZGtpaHB4a2ZiZ3Zzd25mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1MjM5MDIsImV4cCI6MjA5OTA5OTkwMn0.byh2My9XzGjLJjfEZw-EyGqPeCDefYPgTgsQavC9ALE' }
-}).then(function(r){return r.json()}).then(function(d){if(d&&d[0]&&d[0].value)_adminPass=d[0].value}).catch(function(){});
-
-function checkPass() {
-  var pass = document.getElementById('lockPass').value;
-  if (pass === _adminPass) {
-    document.getElementById('lockScreen').style.display = 'none';
-    document.getElementById('adminContent').style.display = '';
-  } else {
-    document.getElementById('lockErr').style.display = 'block';
-    document.getElementById('lockPass').value = '';
-    document.getElementById('lockPass').focus();
-  }
-}
-document.getElementById('lockPass').addEventListener('keydown', function(e) { if (e.key === 'Enter') checkPass(); });
-</script>
+<script src="config.js"></script>
+<script src="api-client.js"></script>
 <script src="admin.js"></script>
 </body>
 </html>
